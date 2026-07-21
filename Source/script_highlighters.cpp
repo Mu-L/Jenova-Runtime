@@ -104,16 +104,21 @@ void CPPSyntaxHighlighter::PerformHighlighting() const
 		"Caller", "Variant", "JenovaSDK",
 		"EngineMode", "FileSystemEvent", "RuntimeReloadMode", "RuntimeEvent", "ClassAccess",
 		"FunctionPtr", "NativePtr", "IntPtr", "BufferPtr", "ObjectPtr", "StringPtr", "WideStringPtr",
-		"ImageSize", "MemoryID", "VariableID", "TaskID", "DriverResourceID", "TaskFunction", "JenovaSDKInterface",
-		"GetSelf", "GetNode", "FindNode", "GlobalPointer", "GlobalGet", "GlobalSet",
-		"GlobalVariable", "GetObjectFromIntPtr", "Instantiate", "InstantiateAsRef",
+		"ImageSize", "MemoryID", "VariableID", "TaskID", "UniqueID", "DriverResourceID", "TaskFunction", 
+		"FutureFunction", "JenovaSDKInterface", "GetSelf", "GetNode", "FindNode", "GlobalPointer", 
+		"GlobalGet", "GlobalSet", "GlobalVariable", "GetObjectFromIntPtr", "Instantiate", "InstantiateAsRef"
+	};
+	PackedStringArray macroKeywords =
+	{
 		jenova::GlobalSettings::ScriptToolIdentifier,
+		jenova::GlobalSettings::ScriptRecordIdentifier,
 		jenova::GlobalSettings::ScriptBlockBeginIdentifier,
 		jenova::GlobalSettings::ScriptBlockEndIdentifier,
 		jenova::GlobalSettings::ScriptVMBeginIdentifier,
 		jenova::GlobalSettings::ScriptVMEndIdentifier,
 		jenova::GlobalSettings::ScriptSignalCallbackIdentifier,
 		jenova::GlobalSettings::ScriptPropertyIdentifier,
+		jenova::GlobalSettings::ScriptSignalIdentifier,
 		jenova::GlobalSettings::ScriptClassNameIdentifier,
 		jenova::GlobalSettings::ScriptActivatorIdentifier,
 		jenova::GlobalSettings::ScriptFunctionExportIdentifier
@@ -139,6 +144,7 @@ void CPPSyntaxHighlighter::PerformHighlighting() const
 		}
 		else if (cppTypes.has(word)) currentColor = cpp_typeColor;
 		else if (specialKeywords.has(word)) currentColor = cpp_specialColor;
+		else if (macroKeywords.has(word)) currentColor = cpp_macroColor;
 		else if (ClassDB::class_exists(word)) currentColor = cpp_classColor;
 		else
 		{

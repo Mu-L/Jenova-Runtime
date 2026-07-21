@@ -213,9 +213,11 @@ def generate_jnvsdk(output_file):
         out.write('static const char JenovaSDKHeader[] = {\n')
         out.write(', '.join(f'0x{byte:02x}' for byte in data))
         out.write('\n};\n')
+        out.write(f'static const char* JenovaSDKHeaderHash = \"{compute_md5("./Source/JenovaSDK.h")}\";\n')
         out.write(f'static const size_t JenovaSDKHeaderSize = {size};\n')
         out.write('const char* GetJenovaSDKHeaderData() { return JenovaSDKHeader; }\n')
-        out.write(f'size_t GetJenovaSDKHeaderSize() {{ return JenovaSDKHeaderSize; }}\n')
+        out.write('const char* GetJenovaSDKHeaderHash() { return JenovaSDKHeaderHash; }\n')
+        out.write('size_t GetJenovaSDKHeaderSize() { return JenovaSDKHeaderSize; }\n')
         out.write('}\n}\n')
 
 # Generic Build Functions

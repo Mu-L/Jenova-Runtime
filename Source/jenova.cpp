@@ -4792,28 +4792,39 @@ namespace jenova
 		
 			// Create Static Build Required Files
 			#ifdef JENOVA_STATIC_BUILD
-				if (QUERY_ENGINE_MODE(Editor))
+			if (QUERY_ENGINE_MODE(Editor))
+			{
+				// Create Ignore File If Doesn't Exist
+				std::string ignoreFilePath = AS_STD_STRING(ProjectSettings::get_singleton()->globalize_path("res://Jenova/.gdignore"));
+				if (!filesystem::exists(ignoreFilePath))
 				{
-					// Create Ignore File If Doesn't Exist
-					std::string ignoreFilePath = AS_STD_STRING(ProjectSettings::get_singleton()->globalize_path("res://Jenova/.gdignore"));
-					if (!filesystem::exists(ignoreFilePath))
-					{
-						std::filesystem::path ignorePath(ignoreFilePath);
-						if (!std::filesystem::exists(ignorePath.parent_path())) std::filesystem::create_directories(ignorePath.parent_path());
-						jenova::WriteStdStringToFile(ignoreFilePath, "*");
-					}
+					std::filesystem::path ignorePath(ignoreFilePath);
+					if (!std::filesystem::exists(ignorePath.parent_path())) std::filesystem::create_directories(ignorePath.parent_path());
+					jenova::WriteStdStringToFile(ignoreFilePath, "*");
+				}
 				
-					// Create JenovaSDK File If Doesn't Exist
-					std::string jenovaSDKFilePath = AS_STD_STRING(ProjectSettings::get_singleton()->globalize_path("res://Jenova/JenovaSDK/JenovaSDK.h"));
-					extern const char* GetJenovaSDKHeaderData();
-					extern size_t GetJenovaSDKHeaderSize();
-					if (!filesystem::exists(jenovaSDKFilePath))
+				// Create JenovaSDK File If Doesn't Exist
+				std::string jenovaSDKFilePath = AS_STD_STRING(ProjectSettings::get_singleton()->globalize_path("res://Jenova/JenovaSDK/JenovaSDK.h"));
+				extern const char* GetJenovaSDKHeaderData();
+				extern const char* GetJenovaSDKHeaderHash();
+				extern size_t GetJenovaSDKHeaderSize();
+				if (!filesystem::exists(jenovaSDKFilePath))
+				{
+					std::filesystem::path jenovaSDKPath(jenovaSDKFilePath);
+					if (!std::filesystem::exists(jenovaSDKPath.parent_path())) std::filesystem::create_directories(jenovaSDKPath.parent_path());
+					jenova::WriteStdStringToFile(jenovaSDKFilePath, std::string(GetJenovaSDKHeaderData(), GetJenovaSDKHeaderSize()));
+				}
+				else
+				{
+					std::string currentSDKHeaderHash = AS_STD_STRING(GenerateMD5HashFromFile(String(jenovaSDKFilePath.c_str())));
+					if (currentSDKHeaderHash != std::string(GetJenovaSDKHeaderHash()))
 					{
 						std::filesystem::path jenovaSDKPath(jenovaSDKFilePath);
-						if (!std::filesystem::exists(jenovaSDKPath.parent_path())) std::filesystem::create_directories(jenovaSDKPath.parent_path());
 						jenova::WriteStdStringToFile(jenovaSDKFilePath, std::string(GetJenovaSDKHeaderData(), GetJenovaSDKHeaderSize()));
+						jenova::Warning("Jenova Core", "Existing JenovaSDK.h mismatch detected, Replaced with the current version.");
 					}
 				}
+			}
 			#endif
 		}
 		static void OnExtensionRelease()

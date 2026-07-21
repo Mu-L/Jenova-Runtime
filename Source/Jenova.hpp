@@ -848,12 +848,14 @@ namespace jenova
 		constexpr char* JenovaCacheDirectory					= "/.jenova/";
 		constexpr char* JenovaCacheDirectoryLegacy				= "/Jenova_Cache/";
 		constexpr char* ScriptToolIdentifier					= "JENOVA_TOOL_SCRIPT";
+		constexpr char* ScriptRecordIdentifier					= "JENOVA_SCRIPT_RECORD";
 		constexpr char* ScriptBlockBeginIdentifier				= "JENOVA_SCRIPT_BEGIN";
 		constexpr char* ScriptBlockEndIdentifier				= "JENOVA_SCRIPT_END";
 		constexpr char* ScriptVMBeginIdentifier					= "JENOVA_VM_BEGIN";
 		constexpr char* ScriptVMEndIdentifier					= "JENOVA_VM_END";
 		constexpr char* ScriptSignalCallbackIdentifier			= "JENOVA_CALLBACK";
 		constexpr char* ScriptPropertyIdentifier				= "JENOVA_PROPERTY";
+		constexpr char* ScriptSignalIdentifier					= "JENOVA_SIGNAL";
 		constexpr char* ScriptClassNameIdentifier				= "JENOVA_CLASS_NAME";
 		constexpr char* ScriptActivatorIdentifier				= "JENOVA_ACTIVATOR";
 		constexpr char* ScriptFunctionExportIdentifier			= "JENOVA_EXPORT";

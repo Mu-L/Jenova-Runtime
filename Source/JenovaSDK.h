@@ -67,6 +67,11 @@
 	#define JENOVA_PROPERTY(pType, pName, pValue, ...) pType pName = pValue;
 #endif
 
+// Jenova Signal Macro
+#ifndef JENOVA_SIGNAL
+	#define JENOVA_SIGNAL(sName)
+#endif
+
 // Jenova Class Name Macro
 #ifndef JENOVA_CLASS_NAME
 	#define JENOVA_CLASS_NAME(className)

@@ -42,6 +42,7 @@ public:
 	Color cpp_commentColor				= Color::html("#a6a6a6aa");
 	Color cpp_operatorColor				= Color::html("#aefce3");
 	Color cpp_specialColor				= Color::html("#47ffaf");
+	Color cpp_macroColor				= Color::html("#ffb8b8");
 
 protected:
 	static void _bind_methods() {}
