@@ -16,7 +16,7 @@
 #include "Jenova.hpp"
 
 // Macros
-#define JENOCON_VERSION         0.46f
+#define JENOCON_VERSION         0.55f
 #define JENOCON_TOGGLE_ACTION   "ConsoleToggle"
 #define VALIDATE_EXECUTOR		if (!executorConsole) return
 
@@ -90,12 +90,14 @@ class ConsoleScheme : public Resource
 public:
     Key visibilityToggleKey		= Key::KEY_QUOTELEFT;
 	bool hideConsoleByDefault	= true;
-	float caretBlinkInterval	= 0.2f;
-	float animationDuration		= 0.3f;
-	float darkShadePower		= 0.6f;
+	float scaleFactor			= 1.0;
+	float caretBlinkInterval	= 0.2;
+	float animationDuration		= 0.3;
+	float darkShadePower		= 0.6;
 	int consoleHeight			= 210;
 	int outputFontSize			= 14;
 	int inputFontSize			= 16;
+	float inputExtraPadding		= 0.0;
 
 protected:
     static void _bind_methods()
@@ -147,6 +149,10 @@ protected:
         ClassDB::bind_method(D_METHOD("get_hide_console_by_default"), &ConsoleScheme::get_hide_console_by_default);
         ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hide_console_by_default"), "set_hide_console_by_default", "get_hide_console_by_default");
 
+		ClassDB::bind_method(D_METHOD("set_scale_factor", "scale_factor"), &ConsoleScheme::set_scale_factor);
+		ClassDB::bind_method(D_METHOD("get_scale_factor"), &ConsoleScheme::get_scale_factor);
+		ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scale_factor", PROPERTY_HINT_RANGE, "0.1,10.0"), "set_scale_factor", "get_scale_factor");
+
         ClassDB::bind_method(D_METHOD("set_caret_blink_interval", "interval"), &ConsoleScheme::set_caret_blink_interval);
         ClassDB::bind_method(D_METHOD("get_caret_blink_interval"), &ConsoleScheme::get_caret_blink_interval);
         ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "caret_blink_interval", PROPERTY_HINT_RANGE, "0.05,1"), "set_caret_blink_interval", "get_caret_blink_interval");
@@ -170,6 +176,10 @@ protected:
 		ClassDB::bind_method(D_METHOD("set_input_font_size", "size"), &ConsoleScheme::set_input_font_size);
 		ClassDB::bind_method(D_METHOD("get_input_font_size"), &ConsoleScheme::get_input_font_size);
 		ADD_PROPERTY(PropertyInfo(Variant::INT, "input_font_size", PROPERTY_HINT_RANGE, "5,30"), "set_input_font_size", "get_input_font_size");
+
+		ClassDB::bind_method(D_METHOD("set_input_extra_padding", "padding"), &ConsoleScheme::set_input_extra_padding);
+		ClassDB::bind_method(D_METHOD("get_input_extra_padding"), &ConsoleScheme::get_input_extra_padding);
+		ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "input_extra_padding", PROPERTY_HINT_RANGE, "0.0,10.0"), "set_input_extra_padding", "get_input_extra_padding");
     }
 
 public:
@@ -178,6 +188,8 @@ public:
     int get_toggle_key() const { return visibilityToggleKey; }
     void set_hide_console_by_default(bool enabled) { hideConsoleByDefault = enabled; }
     bool get_hide_console_by_default() const { return hideConsoleByDefault; }
+	void set_scale_factor(float scale_factor) { scaleFactor = scale_factor; }
+	float get_scale_factor() const { return scaleFactor; }
     void set_caret_blink_interval(float interval) { caretBlinkInterval = interval; }
     float get_caret_blink_interval() const { return caretBlinkInterval; }
     void set_animation_duration_ms(float duration) { animationDuration = duration; }
@@ -190,6 +202,8 @@ public:
 	int get_output_font_size() const { return outputFontSize; }
 	void set_input_font_size(int size) { inputFontSize = size; }
 	int get_input_font_size() const { return inputFontSize; }
+	void set_input_extra_padding(int padding) { inputExtraPadding = padding; }
+	int get_input_extra_padding() const { return inputExtraPadding; }
 };
 
 // Initializer
@@ -210,8 +224,10 @@ void Console::_bind_methods()
 	ClassDB::bind_method(D_METHOD("execute", "command"), &Console::Execute);
 	ClassDB::bind_method(D_METHOD("log", "message"), static_cast<void (Console::*)(const String&)>(&Console::AddLog));
 	ClassDB::bind_method(D_METHOD("logc", "message", "color"), static_cast<void (Console::*)(const String&, Color)>(&Console::AddLog));
+	ClassDB::bind_method(D_METHOD("add_history", "command"), &Console::AddHistory);
 	ClassDB::bind_method(D_METHOD("error", "message"), &Console::ThrowError);
 	ClassDB::bind_method(D_METHOD("flush"), &Console::Flush);
+	ClassDB::bind_method(D_METHOD("is_open"), &Console::IsOpen);
 	ClassDB::bind_method(D_METHOD("get_data"), &Console::GetData);
 
     // Bind Console Scheme Resource
@@ -244,6 +260,7 @@ void Console::_enter_tree()
 }
 void Console::_exit_tree()
 {
+	// Nothing Needed Yet
 }
 void Console::_ready()
 {
@@ -269,9 +286,12 @@ void Console::_process(double _delta)
 // Clektron Console Implementation
 void Console::InitializeConsole()
 {
+	// Get Scale Factor
+	float scaleFactor = GetConfiguration<float>("scale_factor");
+
 	// Generate Configuration
-	float outputFontSize = GetConfiguration<int>("output_font_size");
-	float inputFontSize = GetConfiguration<int>("input_font_size");
+	float outputFontSize = GetConfiguration<int>("output_font_size") * scaleFactor;
+	float inputFontSize = GetConfiguration<int>("input_font_size") * scaleFactor;
 
 	// Create Resources :: Highlighter
 	Ref<CodeHighlighter> highlighter = Object::cast_to<CodeHighlighter>(ClassDB::instantiate("ClektronHighlighter"));
@@ -285,26 +305,27 @@ void Console::InitializeConsole()
 	Ref<StyleBoxFlat> outputBox;
 	outputBox.instantiate();
 	outputBox->set_bg_color(Color(0, 0, 0, 0.2));
-	outputBox->set_content_margin(SIDE_LEFT, 8.0);
-	outputBox->set_content_margin(SIDE_TOP, 4.0);
-	outputBox->set_corner_radius(CORNER_TOP_LEFT, 3);
-	outputBox->set_corner_radius(CORNER_TOP_RIGHT, 3);
-	outputBox->set_corner_radius(CORNER_BOTTOM_RIGHT, 3);
-	outputBox->set_corner_radius(CORNER_BOTTOM_LEFT, 3);
-	outputBox->set_corner_detail(6);
+	outputBox->set_content_margin(SIDE_LEFT, 8.0 * scaleFactor);
+	outputBox->set_content_margin(SIDE_TOP, 4.0 * scaleFactor);
+	outputBox->set_corner_radius(CORNER_TOP_LEFT, 3 * scaleFactor);
+	outputBox->set_corner_radius(CORNER_TOP_RIGHT, 3 * scaleFactor);
+	outputBox->set_corner_radius(CORNER_BOTTOM_RIGHT, 3 * scaleFactor);
+	outputBox->set_corner_radius(CORNER_BOTTOM_LEFT, 3 * scaleFactor);
+	outputBox->set_corner_detail(6 * scaleFactor);
 
 	// Create Resources :: Input Box
 	Ref<StyleBoxFlat> inputBox;
 	inputBox.instantiate();
 	inputBox->set_bg_color(Color(0, 0, 0, 0.3882353));
-	inputBox->set_content_margin(SIDE_LEFT, 12.0);
+	inputBox->set_content_margin(SIDE_LEFT, 12.0 * scaleFactor);
+	inputBox->set_content_margin(SIDE_TOP, GetConfiguration<float>("input_extra_padding") * scaleFactor);
 	inputBox->set_border_color(Color(0.182, 0.91, 0.57026666, 1));
-	inputBox->set_border_width(SIDE_LEFT, 3);
-	inputBox->set_corner_radius(CORNER_TOP_LEFT, 3);
-	inputBox->set_corner_radius(CORNER_TOP_RIGHT, 3);
-	inputBox->set_corner_radius(CORNER_BOTTOM_RIGHT, 3);
-	inputBox->set_corner_radius(CORNER_BOTTOM_LEFT, 3);
-	inputBox->set_corner_detail(1);
+	inputBox->set_border_width(SIDE_LEFT, 3 * scaleFactor);
+	inputBox->set_corner_radius(CORNER_TOP_LEFT, 3 * scaleFactor);
+	inputBox->set_corner_radius(CORNER_TOP_RIGHT, 3 * scaleFactor);
+	inputBox->set_corner_radius(CORNER_BOTTOM_RIGHT, 3 * scaleFactor);
+	inputBox->set_corner_radius(CORNER_BOTTOM_LEFT, 3 * scaleFactor);
+	inputBox->set_corner_detail(1 * scaleFactor);
 
 	// Create Resources :: Console Font
 	Ref<Font> consoleFont = jenova::CreateFontFileFromByteArray(RESOURCE_BUFFER(FONT_SPACEMONO_REGULAR));
@@ -320,17 +341,17 @@ void Console::InitializeConsole()
 	consolePanel->set_z_index(999);
 	consolePanel->set_material(panelShaderMaterial);
 	consolePanel->set_anchors_preset(Control::PRESET_TOP_WIDE);
-	consolePanel->set_custom_minimum_size(Vector2(0, GetConfiguration<float>("console_height")));
+	consolePanel->set_custom_minimum_size(Vector2(0, GetConfiguration<float>("console_height") * scaleFactor));
 	this->add_child(consolePanel);
 
 	// Create User Interface :: Console Output
 	consoleOutput = memnew(RichTextLabel);
 	consoleOutput->set_name("ConsoleOutput");
 	consoleOutput->set_anchors_preset(Control::PRESET_FULL_RECT);
-	consoleOutput->set_offset(Side::SIDE_LEFT, 8.0);
-	consoleOutput->set_offset(Side::SIDE_TOP, 8.0);
-	consoleOutput->set_offset(Side::SIDE_RIGHT, -8.0);
-	consoleOutput->set_offset(Side::SIDE_BOTTOM, -46.0);
+	consoleOutput->set_offset(Side::SIDE_LEFT, 8.0 * scaleFactor);
+	consoleOutput->set_offset(Side::SIDE_TOP, 8.0 * scaleFactor);
+	consoleOutput->set_offset(Side::SIDE_RIGHT, -8.0 * scaleFactor);
+	consoleOutput->set_offset(Side::SIDE_BOTTOM, -46.0 * scaleFactor);
 	consoleOutput->add_theme_color_override("selection_color", Color("#2ebc78"));
 	consoleOutput->add_theme_font_override("normal_font", consoleFont);
 	consoleOutput->add_theme_font_override("mono_font", consoleFont);
@@ -350,14 +371,14 @@ void Console::InitializeConsole()
 	consoleInput = memnew(CodeEdit);
 	consoleInput->set_name("ConsoleInput");
 	consoleInput->set_anchors_preset(Control::PRESET_BOTTOM_WIDE);
-	consoleInput->set_custom_minimum_size(Vector2(0, 32));
-	consoleInput->set_offset(Side::SIDE_LEFT, 8.0);
-	consoleInput->set_offset(Side::SIDE_TOP, -40.0);
-	consoleInput->set_offset(Side::SIDE_RIGHT, -8.0);
-	consoleInput->set_offset(Side::SIDE_BOTTOM, -8.0);
+	consoleInput->set_custom_minimum_size(Vector2(0, 32 * scaleFactor));
+	consoleInput->set_offset(Side::SIDE_LEFT, 8.0 * scaleFactor);
+	consoleInput->set_offset(Side::SIDE_TOP, -40.0 * scaleFactor);
+	consoleInput->set_offset(Side::SIDE_RIGHT, -8.0 * scaleFactor);
+	consoleInput->set_offset(Side::SIDE_BOTTOM, -8.0 * scaleFactor);
 	consoleInput->add_theme_color_override("selection_color", Color("#2ebc78"));
 	consoleInput->add_theme_color_override("caret_color", Color(0.4, 1.0, 0.7, 0.6));
-	consoleInput->add_theme_constant_override("caret_width", 10);
+	consoleInput->add_theme_constant_override("caret_width", 10 * scaleFactor);
 	consoleInput->add_theme_font_override("font", consoleFont);
 	consoleInput->add_theme_font_size_override("font_size", inputFontSize);
 	consoleInput->add_theme_stylebox_override("normal", inputBox);
@@ -395,11 +416,7 @@ bool Console::ExecuteCommand(String consoleCommand)
 	consoleOutput->add_text(consoleCommand);
 
 	// Add to History
-	if (consoleHistory.is_empty()) consoleHistory.push_back(consoleCommand);
-	else if (consoleHistory[consoleHistory.size() - 1] != consoleCommand) consoleHistory.push_back(consoleCommand);
-
-	// Update Current History Index
-	currentHistoryIndex = consoleHistory.size();
+	AddHistory(consoleCommand);
 
 	// Prepare Command
 	if (!consoleCommand.ends_with(")") && !consoleCommand.contains("();")) consoleCommand += "();";
@@ -442,7 +459,7 @@ void Console::ShowHideConsole(bool visible)
 }
 String Console::GetInitialText() const
 {
-	std::string initialText = jenova::Format("[color=#2ebc78]Jenova Console v%1.2f Alpha Initialized.[/color]", JENOCON_VERSION);
+	std::string initialText = jenova::Format("[color=#2ebc78]Jenova Console v%1.2f Initialized.[/color]", JENOCON_VERSION);
 	return String(initialText.c_str());
 }
 void Console::SetConsoleState(bool state)
@@ -499,10 +516,19 @@ void Console::HandleConsoleInputEvent(const Ref<InputEvent>& inputEvent)
 		{
 			if (consoleHistory.size() != 0)
 			{
-				if (currentHistoryIndex < consoleHistory.size())
+				if (currentHistoryIndex < consoleHistory.size() - 1)
 				{
 					currentHistoryIndex++;
 					currentHistoryIndex = ::CLAMP(currentHistoryIndex, 0, consoleHistory.size() - 1);
+				}
+				else
+				{
+					// No More History, Fallback to Default
+					currentHistoryIndex = consoleHistory.size();
+					consoleInput->set_text("");
+					int caretPosition = consoleInput->get_text().length();
+					consoleInput->set_caret_column(caretPosition);
+					return;
 				}
 				consoleInput->set_text(consoleHistory[currentHistoryIndex]);
 				int caretPosition = consoleInput->get_text().length();
@@ -545,6 +571,15 @@ void Console::AddLog(const String& logMessage, Color logColor)
 {
 	consoleOutput->append_text("\n> [color=" + logColor.to_html() + "]Error : " + logMessage + "[/color]");
 }
+void Console::AddHistory(const String& history)
+{
+	// Add New History
+	if (consoleHistory.is_empty()) consoleHistory.push_back(history);
+	else if (consoleHistory[consoleHistory.size() - 1] != history) consoleHistory.push_back(history);
+
+	// Update Current History Index
+	currentHistoryIndex = consoleHistory.size();
+}
 void Console::ThrowError(const String& errorMessage)
 {
 	consoleOutput->append_text("\n> [color=#f83760]Error : " + errorMessage + "[/color]");
@@ -552,6 +587,10 @@ void Console::ThrowError(const String& errorMessage)
 void Console::Flush()
 {
 	consoleOutput->clear();
+}
+bool Console::IsOpen() const
+{
+	return isConsoleVisible;
 }
 String Console::GetData() const
 {

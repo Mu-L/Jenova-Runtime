@@ -42,5 +42,6 @@ public:
 	size_t GetResourceRawFileSize(const String& dataID) const;
 
 public:
+	static jenova::MemoryBuffer GetDefaultResourcePack();
 	static jenova::MemoryBuffer PullEntity(const uint8_t* archivePtr, size_t archiveSize, const std::string& entityID);
 };

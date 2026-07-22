@@ -48,11 +48,11 @@ std::map<const char*, std::shared_ptr<std::fstream>> fileInstances;
 extern "C" namespace ClektronSystem
 {
     // Types
-    typedef void* Instance;
-    typedef void* Buffer;
-    typedef void* FunctionPtr;
-    typedef const char* CString;
-    typedef int Size;
+    typedef void*           Instance;
+    typedef void*           Buffer;
+    typedef void*           FunctionPtr;
+    typedef const char*     CString;
+    typedef int             Size;
 
     // Enums
     enum AlertType

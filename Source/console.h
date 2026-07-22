@@ -63,15 +63,17 @@ public:
 	// Accessors
 	RichTextLabel* GetConsoleOutput() { return consoleOutput; };
 	CodeEdit* GetConsoleInput() { return consoleInput; };
-	Vector<String> GetConsoleHistory() { return consoleHistory; };
+	Vector<String>& GetConsoleHistory() { return consoleHistory; };
 
 public:
 	// Exposed API
 	bool Execute(const String& command);
 	void AddLog(const String& logMessage);
 	void AddLog(const String& logMessage, Color logColor);
+	void AddHistory(const String& history);
 	void ThrowError(const String& errorMessage);
 	void Flush();
+	bool IsOpen() const;
 	String GetData() const;
 
 private:

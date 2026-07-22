@@ -182,6 +182,10 @@ size_t JenovaResourceManager::GetResourceRawFileSize(const String& dataID) const
 }
 
 // Standalone Extractor (For Resource Manager)
+jenova::MemoryBuffer JenovaResourceManager::GetDefaultResourcePack()
+{
+    return jenova::CreateMemoryBuffer((void*)JENOVA_RESOURCE(JENOVA_ASSET_PACK_LZMA2), sizeof(JENOVA_RESOURCE(JENOVA_ASSET_PACK_LZMA2)));
+}
 jenova::MemoryBuffer JenovaResourceManager::PullEntity(const uint8_t* archivePtr, size_t archiveSize, const std::string& entityID)
 {
     // Default Package

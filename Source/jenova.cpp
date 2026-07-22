@@ -9744,10 +9744,7 @@ namespace jenova
 				std::string jenovaCacheDirectory = AS_STD_STRING(jenova::GetJenovaCacheDirectory());
 
 				// Validate Jenova Cache Folder
-				if (std::filesystem::exists(jenovaCacheDirectory))
-				{
-					return std::filesystem::remove_all(jenovaCacheDirectory);
-				}
+				if (std::filesystem::exists(jenovaCacheDirectory)) return std::filesystem::remove_all(jenovaCacheDirectory);
 			}
 
 			// Run Module In Debug Mode
@@ -9756,6 +9753,16 @@ namespace jenova
 				#ifndef JENOVA_PROTECTED_MODE
 					JenovaInterpreter::SetDebugModeExecutionState(true);
 				#endif
+			}
+		
+			// Run Module In Debug Mode
+			if (argument == "--Dump-Resource-Pack")
+			{
+				MemoryBuffer resPack = JenovaResourceManager::GetDefaultResourcePack();
+				WriteMemoryBufferToFile(GetExecutableDirectory() + "/JenovaDefaultResourcePack.lzma2", resPack);
+				ReleaseMemoryBuffer(resPack);
+				jenova::Output("Jenvoa Default Resource Package Dumped Successfully.");
+				jenova::ExitWithCode(0);
 			}
 		}
 

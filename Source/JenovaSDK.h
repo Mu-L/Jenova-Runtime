@@ -195,22 +195,40 @@ namespace jenova::sdk
 	{
 		godot::Node* consoleNode = nullptr;
 		Console(godot::Node* _consoleNode) : consoleNode(_consoleNode) {};
-		bool Execute(const godot::String& command)
+		inline bool Execute(const godot::String& command)
 		{
+			if (!consoleNode) return false;
 			return bool(consoleNode->call("execute", command));
 		}
-		void Log(const godot::String& logMessage, godot::Color logColor = godot::Color(12, 34, 56))
+		inline void Log(const godot::String& logMessage, godot::Color logColor = godot::Color(12, 34, 56))
 		{
+			if (!consoleNode) return;
 			if (logColor == godot::Color(12, 34, 56)) consoleNode->call("log", logMessage);
 			else consoleNode->call("logc", logMessage, logColor);
 		}
-		void Error(const godot::String& errorMessage)
+		inline void AddHistory(const godot::String& history)
 		{
+			if (!consoleNode) return;
+			consoleNode->call("add_history", history);
+		}
+		inline void Error(const godot::String& errorMessage)
+		{
+			if (!consoleNode) return;
 			consoleNode->call("error", errorMessage);
 		}
-		void Flush()
+		inline void Flush()
 		{
+			if (!consoleNode) return;
 			consoleNode->call("flush");
+		}
+		inline bool IsOpen()
+		{
+			if (!consoleNode) return false;
+			return consoleNode->call("is_open");
+		}
+		inline godot::String GetData()
+		{
+			return consoleNode->call("get_data");
 		}
 	};
 
@@ -755,6 +773,12 @@ namespace jenova::sdk
 	template <typename T> T GlobalVariable(VariableID id)
 	{
 		return T(GetGlobalVariable(id));
+	}
+	template<typename T> bool IsValidObject(const godot::Variant& variant)
+	{
+		if (variant.get_type() != godot::Variant::OBJECT) return false;
+		godot::Object* obj = variant;
+		return obj != nullptr && godot::Object::cast_to<T>(obj) != nullptr;
 	}
 	template <typename T> T* GetObjectFromIntPtr(IntPtr ptr)
 	{
