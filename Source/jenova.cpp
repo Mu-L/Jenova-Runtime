@@ -10233,6 +10233,9 @@ namespace jenova
 			// Get Tool Binary Path
 			std::string toolBinaryPath = toolPackage.Path + "/" + toolPackage.Binary;
 
+			// Exclude Non-Editor Tools
+			if (toolPackage.Type.find("EditorTool") == std::string::npos) return true;
+
 			// Load Tool Module
 			jenova::ModuleHandle toolModule = jenova::LoadModule(toolBinaryPath.c_str());
 			if (!toolModule)

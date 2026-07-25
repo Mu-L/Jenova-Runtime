@@ -152,6 +152,7 @@ private:
 	Button* profilerPreviousFrameTool = nullptr;
 	Button* profilerNextFrameTool = nullptr;
 	Button* foldAllScriptsTool = nullptr;
+	Button* advancedVisualizerTool = nullptr;
 
 	// Resources
 	Ref<Theme> editorTheme;
@@ -174,6 +175,7 @@ private:
 	Ref<ImageTexture> backwardFrameImage;
 	Ref<ImageTexture> forwardFrameImage;
 	Ref<ImageTexture> foldAllImage;
+	Ref<ImageTexture> advVisualizerImage;
 	Ref<Font> cascadiaFont;
 	Ref<Font> spaceMonoRegularFont;
 	Ref<Font> spaceMonoItalicFont;
@@ -233,12 +235,60 @@ private:
 		String reportPath = jenova::GetJenovaCacheDirectory() + jenova::GlobalSettings::JenovaProfilerReportDatabaseFile;
 		if (std::filesystem::exists(AS_STD_STRING(reportPath)))
 		{
-			if (!LoadProfilerDatbase(reportPath)) jenova::Error("Jenova Script Manager", "Failed to Load Profiler Configuration Cache.");
+			if (!LoadProfilerDatbase(reportPath)) jenova::Error("Jenova Script Manager", "Failed to Load Profiler Cache Database.");
 		}
 	}
 	void FoldAllScriptItems()
 	{
 		for (auto scriptItem : loadedScripts) scriptItem.second->fold();
+	}
+	void OpenAdvancedVisualizer()
+	{
+		// Check for Visualizer
+		String visualizerPath = "";
+		jenova::PackageList toolPkgs = jenova::GetInstalledToolPackages();
+		for (const auto& toolPkg : toolPkgs)
+		{
+			if (toolPkg.pkgDestination.contains("SentinelVisualizer"))
+			{
+				visualizerPath = toolPkg.pkgDestination;
+				break;
+			}
+		}
+
+		// Visualizer Not Found
+		if (visualizerPath.is_empty())
+		{
+			jenova::Error("Jenova Script Manager", "Sentinel Visualizer Installation not Detected. Install via Tools > Package Manager.");
+			return;
+		}
+
+		// Resolve Visaulzier Absoltue Path
+		if (visualizerPath.contains("res://")) visualizerPath = ProjectSettings::get_singleton()->globalize_path(visualizerPath);
+
+		// Check for Debug Database
+		String dbPath = jenova::GetJenovaCacheDirectory() + jenova::GlobalSettings::JenovaProfilerReportDatabaseFile;
+		if (!std::filesystem::exists(AS_STD_STRING(dbPath)))
+		{
+			jenova::Error("Jenova Script Manager", "Failed to Load Profiler Cache Database, File Not Found.");
+			return;
+		}
+	
+		// Copy Database in Tool Directory
+		String dbClonePath = visualizerPath.path_join("Database.json");
+		try { std::filesystem::copy_file(AS_STD_STRING(dbPath), AS_STD_STRING(dbClonePath), std::filesystem::copy_options::overwrite_existing); }
+		catch (const std::exception& error)
+		{
+			jenova::Error("Jenova Script Manager", "Failed to Copy Profiler Cache Database, Action Aborted. Reason : %s", error.what());
+			return;
+		}
+
+		// Run Server
+		String serverBinary = visualizerPath.path_join("AppServer.py");
+		jenova::RunFile(AS_C_STRING(serverBinary));
+
+		// All Good
+		jenova::Output("Sentinel Profiler Database Visualizer Successfully Launched.");
 	}
 
 private:
@@ -348,6 +398,7 @@ private:
 		backwardFrameImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_BACKWARD_FRAME_ICON));
 		forwardFrameImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_FORWARD_FRAME_ICON));
 		foldAllImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_FOLD_ALL_ICON));
+		advVisualizerImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_PIE_CHART_ICON));
 
 		// Create Font Resources
 		cascadiaFont = jenova::CreateFontFileFromByteArray(RESOURCE_BUFFER(FONT_CASCADIACODE_REGULAR));
@@ -423,12 +474,15 @@ private:
 		profilerNextFrameTool = CreateNewToolbarItem("FrameForward", forwardFrameImage, "Forward to Next Frame (Hold Shift to 10x)", _Toolbar);
 		CreateNewToolbarSeparator(_Toolbar);
 		foldAllScriptsTool = CreateNewToolbarItem("FoldAllScriptItems", foldAllImage, "Fold All Script Items", _Toolbar);
+		CreateNewToolbarSeparator(_Toolbar);
+		advancedVisualizerTool = CreateNewToolbarItem("OpenAdvancedVisualizer", advVisualizerImage, "Open Profiler Database in Sentinel Visualizer...", _Toolbar);
 
 		// Assign Signals
 		reloadProfilerCacheTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::ReloadProfilerDatabase));
 		profilerPreviousFrameTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::MoveProfilerFrame).bind(-1));
 		profilerNextFrameTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::MoveProfilerFrame).bind(1));
 		foldAllScriptsTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::FoldAllScriptItems));
+		advancedVisualizerTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::OpenAdvancedVisualizer));
 	}
 	void ReleaseResources()
 	{

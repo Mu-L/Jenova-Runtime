@@ -35,6 +35,7 @@ private:
 	jenova::TaskID currentTaskID	= 0;
 	int64_t currentTabID			= 0;
 	bool isBusy						= false;
+	bool isHeld						= false;
 
 public:
 	static void init();
@@ -43,6 +44,9 @@ public:
 public:
 	bool OpenPackageManager();
 	jenova::PackageList GetInstalledPackages(const jenova::PackageType& packageType);
+	Window* GetWindow() { return currentWindow; }
+	void SetHeld(bool heldState) { isHeld = heldState; }
+	bool GetHeld() const { return isHeld; }
 
 private:
 	Button* CreateToolbarItem(const String& toolName, const Ref<Texture2D>& toolIcon, const String& toolTip, Control* toolbar);
@@ -68,7 +72,6 @@ private:
 	void RequestEditorRestart();
 	void PromptPackageDocumentation(const String& markdownFile);
 	void SetBusy(bool busyState, jenova::TaskID taskID = 0);
-	Window* GetWindow() { return currentWindow; }
 	bool CanClose() const;
 	bool PreparePackageManager();
 	void PrepareForClose();

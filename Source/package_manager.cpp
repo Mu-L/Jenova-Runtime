@@ -83,7 +83,7 @@ static std::string GetOnlinePackageDatabaseURL()
 	// Return Final URL
 	return fullURL;
 }
-static void CreatePackageDocumentationWindow(const String& docContext, Window* owner)
+static void CreatePackageDocumentationWindow(const String& docContext, JenovaPackageManager* pkgManagerInstance)
 {
 	// Get Scale Factor
 	double scaleFactor = EditorInterface::get_singleton()->get_editor_scale();
@@ -102,7 +102,7 @@ static void CreatePackageDocumentationWindow(const String& docContext, Window* o
 	docWindow->set_min_size(Vector2i(SCALED(500), SCALED(500)));
 
 	// Show Window [Must Be Here]
-	owner->add_child(docWindow);
+	pkgManagerInstance->GetWindow()->add_child(docWindow);
 	docWindow->hide();
 	docWindow->popup_centered();
 
@@ -135,7 +135,25 @@ static void CreatePackageDocumentationWindow(const String& docContext, Window* o
 	markova->add_theme_font_override("mono_font", spaceMonoRegularFont);
 	marginContainer->add_child(markova);
 
-	// Connect Signals
+	// Define Internal UI Callback
+	class WindowEvent : public Object
+	{
+	private:
+		JenovaPackageManager* pkgManagerInstance = nullptr;
+
+	public:
+		WindowEvent(JenovaPackageManager* _pkgman) : pkgManagerInstance(_pkgman) {}
+
+	public:
+		void Closed()
+		{
+			pkgManagerInstance->SetHeld(false);
+			memdelete(this);
+		}
+	};
+
+	// Create & Assign UI Callback to Window
+	docWindow->connect("close_requested", callable_mp(memnew(WindowEvent(pkgManagerInstance)), &WindowEvent::Closed));
 	docWindow->connect("close_requested", callable_mp((Node*)docWindow, &Window::queue_free));
 }
 
@@ -1199,15 +1217,20 @@ bool JenovaPackageManager::InstallPackage(const String& packageHash)
 	// Update Status
 	this->FormatStatus("#2edb76", "Package '%s' Installed.", AS_C_STRING(package.pkgName));
 
+	// Prompt User to Open Documentation File If Exists
+	std::string readMeFilePath = AS_STD_STRING(installPath) + "/" + "ReadMe.md";
+	if (std::filesystem::exists(readMeFilePath))
+	{
+		SetHeld(true);
+		this->call_deferred("PromptPackageDocumentation", String(readMeFilePath.c_str()));
+		while (isHeld) { OS::get_singleton()->delay_msec(10); };
+	}
+
 	// Request Restart if Package is Tool
 	if (package.pkgType == jenova::PackageType::Tool) this->call_deferred("RequestEditorRestart");
 
 	// Request Build and Restart if Package is Sample Project
 	if (package.pkgType == jenova::PackageType::SampleProject) jenova::QueueProjectBuild(true, true);
-
-	// Prompt User to Open Documentation File If Exists
-	std::string readMeFilePath = AS_STD_STRING(installPath) + "/" + "ReadMe.md";
-	if (std::filesystem::exists(readMeFilePath)) this->call_deferred("PromptPackageDocumentation", String(readMeFilePath.c_str()));
 
 	// All Good
 	return true;
@@ -1788,10 +1811,10 @@ void JenovaPackageManager::PromptPackageDocumentation(const String& markdownFile
 		{
 		private:
 			String documentationFile;
-			Window* pkgManWindow = nullptr;
+			JenovaPackageManager* pkgManagerInstance = nullptr;
 
 		public:
-			OnConfirmedEvent(const String& _markdownFile, Window* _pkgManWindow) : documentationFile(_markdownFile), pkgManWindow(_pkgManWindow) {}
+			OnConfirmedEvent(const String& _markdownFile, JenovaPackageManager* _pkgman) : documentationFile(_markdownFile), pkgManagerInstance(_pkgman) {}
 
 		public:
 			void ProcessEvent()
@@ -1799,23 +1822,34 @@ void JenovaPackageManager::PromptPackageDocumentation(const String& markdownFile
 				// Open Documentation
 				if (jenova::GlobalSettings::UseMarkovaForDocumentations)
 				{
-					CreatePackageDocumentationWindow(jenova::ReadStringFromFile(documentationFile), pkgManWindow);
+					CreatePackageDocumentationWindow(jenova::ReadStringFromFile(documentationFile), pkgManagerInstance);
 				}
 				else
 				{
 					jenova::RunFile(AS_C_STRING(documentationFile));
+					pkgManagerInstance->SetHeld(false);
 				}
+				memdelete(this);
+			}
+			void Abort()
+			{
+				pkgManagerInstance->SetHeld(false);
 				memdelete(this);
 			}
 		};
 
 		// Create & Assign UI Callback to Dialog
-		dialog->connect("confirmed", callable_mp(memnew(OnConfirmedEvent(markdownFile, GetWindow())), &OnConfirmedEvent::ProcessEvent));
+		dialog->connect("confirmed", callable_mp(memnew(OnConfirmedEvent(markdownFile, this)), &OnConfirmedEvent::ProcessEvent));
 		dialog->connect("confirmed", callable_mp((Node*)dialog, &ConfirmationDialog::queue_free));
+		dialog->connect("canceled", callable_mp(memnew(OnConfirmedEvent(markdownFile, this)), &OnConfirmedEvent::Abort));
 		dialog->connect("canceled", callable_mp((Node*)dialog, &ConfirmationDialog::queue_free));
 
 		GetWindow()->add_child(dialog);
 		dialog->popup_centered();
+	}
+	else
+	{
+		SetHeld(false);
 	}
 }
 void JenovaPackageManager::SetBusy(bool busyState, jenova::TaskID taskID)

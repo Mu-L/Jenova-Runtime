@@ -1117,8 +1117,8 @@ namespace jenova
 	std::string FindScriptPathFromPreprocessedFile(const std::string& preprocessedFile);
 	bool RegisterRuntimeEventCallback(jenova::FunctionPointer runtimeCallback);
 	bool UnregisterRuntimeEventCallback(jenova::FunctionPointer runtimeCallback);
-	jenova::UniqueID RegisterFutureFunction(jenova::FutureFunction futureFunction, int milliseconds);
-	jenova::UniqueID RegisterFutureFunction(jenova::FutureFunction futureFunction, double seconds);
+	jenova::UniqueID RegisterFutureFunction(jenova::FutureFunction futureFunction, int milliseconds = 10);
+	jenova::UniqueID RegisterFutureFunction(jenova::FutureFunction futureFunction, double seconds = 0.01);
 	bool FutureFunctionExists(jenova::UniqueID functionID);
 	bool UnRegisterFutureFunction(jenova::UniqueID functionID);
 	jenova::SerializedData GenerateRuntimeModuleConfiguration();

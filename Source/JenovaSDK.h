@@ -639,12 +639,12 @@ namespace jenova::sdk
 	}
 
 	// Runtime Dispatcher Utilities :: Wrappers
-	JNVAPI_WRAPPER UniqueID QueueFunction(FutureFunction function, int milliseconds)
+	JNVAPI_WRAPPER UniqueID QueueFunction(FutureFunction function, int milliseconds = 10)
 	{
 		if (!JenovaSDK::ValidateInterface(bridge)) return 0;
 		return bridge->QueueFunction(function, milliseconds);
 	}
-	JNVAPI_WRAPPER UniqueID QueueFunction(FutureFunction function, double seconds)
+	JNVAPI_WRAPPER UniqueID QueueFunction(FutureFunction function, double seconds = 0.01)
 	{
 		if (!JenovaSDK::ValidateInterface(bridge)) return 0;
 		return bridge->QueueFunction(function, seconds);
