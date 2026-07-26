@@ -29,7 +29,7 @@ private:
 
 public:
     // Define C++ Highlighter Colors
-	Color cpp_typeColor					= Color::html("#8d74fc");
+	Color cpp_typeColor					= Color::html("#aa97fc");
 	Color cpp_keywordColor				= Color::html("#6e9ffa");
 	Color cpp_controlFlowColor			= Color::html("#7cf0ff");
 	Color cpp_classColor				= Color::html("#fcc762");

@@ -229,7 +229,7 @@ namespace jenova
             if (bool(compilerSettings["cpp_debug_database"]) && bool(compilerSettings["cpp_generate_debug_info"]))
             {
                 compilerArgument += "/Zi ";
-                compilerArgument += "/Fd \"" + this->jenovaCachePath + AS_STD_STRING(String(compilerSettings["cpp_output_database"])) + "\" ";;
+                compilerArgument += "/Fd\"" + this->jenovaCachePath + AS_STD_STRING(String(compilerSettings["cpp_output_database"])) + "\" ";
             }
             compilerArgument += bool(compilerSettings["cpp_conformance_mode"]) ? "/permissive- " : "/permissive ";
             if (int(compilerSettings["cpp_exception_handling"]) == 1) compilerArgument += "/EHsc ";

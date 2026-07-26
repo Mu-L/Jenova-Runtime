@@ -41,6 +41,14 @@ Ref<Script> CPPScript::_get_base_script() const
 }
 StringName CPPScript::_get_global_name()
 {
+	// Parese User-Defined Class Name
+	if (this->has_source_code())
+	{
+		std::string className = jenova::ParseClassNameFromScriptSource(AS_STD_STRING(this->get_source_code()));
+		if (!className.empty()) return StringName(className.c_str());
+	}
+
+	// Fallback
 	return StringName("JenovaScript_" + GetScriptIdentity());
 }
 bool CPPScript::_inherits_script(const Ref<Script>& p_script) const
@@ -171,24 +179,44 @@ ScriptLanguage* CPPScript::_get_language() const
 }
 bool CPPScript::_has_script_signal(const StringName& p_signal) const
 {
-	jenova::VerboseByID(__LINE__, "CPPScript::_has_script_signal (%s)", AS_C_STRING(p_signal));
-	return false; // Not Supported Yet
+	TypedArray<Dictionary> signalsList = CPPScript::_get_script_signal_list();
+	for (const Dictionary& signal : signalsList)
+	{
+		if (String(signal["name"]) == p_signal) return true;
+	}
+	return false;
 }
 TypedArray<Dictionary> CPPScript::_get_script_signal_list() const
 {
-	jenova::VerboseByID(__LINE__, "CPPScript::_get_script_signal_list");
-	return TypedArray<Dictionary>();
+	TypedArray<Dictionary> signalsList;
+	auto functionContainer = JenovaInterpreter::GetFunctionContainer(AS_STD_STRING(GetScriptIdentity()));
+	for (const auto& function : functionContainer.scriptFunctions)
+	{
+		if (!function.functionName.contains("__jnvsignal__")) continue;
+		Dictionary methodInfo = Dictionary(function.methodInfo);
+		methodInfo["name"] = String(methodInfo["name"]).replace("__jnvsignal__", "");
+		signalsList.push_back(methodInfo);
+	}
+	return signalsList;
 }
 bool CPPScript::_has_property_default_value(const StringName& p_property) const
 {
-	jenova::VerboseByID(__LINE__, "CPPScript::_has_property_default_value (%s)", AS_C_STRING(p_property));
-	// This will cause property change flag on assigned node!
+	auto propertyContainer = JenovaInterpreter::GetPropertyContainer(AS_STD_STRING(GetScriptIdentity()));
+	for (const auto& property : propertyContainer.scriptProperties)
+	{
+		if (property.propertyName == p_property && property.defaultValue.get_type() != Variant::NIL) return true;
+	}
 	return false;
 }
 Variant CPPScript::_get_property_default_value(const StringName& p_property) const
 {
-	jenova::VerboseByID(__LINE__, "CPPScript::_get_property_default_value (%s)", AS_C_STRING(p_property));
-	return Variant();  // Not Supported Yet
+	TypedArray<Dictionary> propertyList;
+	auto propertyContainer = JenovaInterpreter::GetPropertyContainer(AS_STD_STRING(GetScriptIdentity()));
+	for (const auto& property : propertyContainer.scriptProperties)
+	{
+		if (property.propertyName == p_property && property.defaultValue.get_type() != Variant::NIL)  return property.defaultValue;
+	}
+	return propertyList;
 }
 void CPPScript::_update_exports()
 {
@@ -197,16 +225,19 @@ void CPPScript::_update_exports()
 TypedArray<Dictionary> CPPScript::_get_script_method_list() const
 {
 	TypedArray<Dictionary> methodsList;
-	std::string scriptUID = AS_STD_STRING(GetScriptIdentity());
-	auto functionContainer = JenovaInterpreter::GetFunctionContainer(scriptUID);
-	for (const auto& function : functionContainer.scriptFunctions) methodsList.push_back(Dictionary(function.methodInfo));
+	auto functionContainer = JenovaInterpreter::GetFunctionContainer(AS_STD_STRING(GetScriptIdentity()));
+	for (const auto& function : functionContainer.scriptFunctions)
+	{
+		if (function.functionName.contains("__jnvsignal__")) continue;
+		methodsList.push_back(Dictionary(function.methodInfo));
+	}
 	return methodsList;
 }
 TypedArray<Dictionary> CPPScript::_get_script_property_list() const
 {
 	TypedArray<Dictionary> propertyList;
 	std::string scriptUID = AS_STD_STRING(GetScriptIdentity());
-	auto propertyContainer = JenovaInterpreter::GetPropertyContainer(scriptUID);
+	auto propertyContainer = JenovaInterpreter::GetPropertyContainer(AS_STD_STRING(GetScriptIdentity()));
 	for (const auto& property : propertyContainer.scriptProperties) propertyList.push_back(Dictionary(property.propertyInfo));
 	return propertyList;
 }

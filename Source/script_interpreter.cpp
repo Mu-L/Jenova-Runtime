@@ -390,21 +390,26 @@ jenova::ScriptFunctionContainer JenovaInterpreter::GetFunctionContainer(const st
         scriptFunction.methodInfo.id = scriptFunction.functionID;
 
         // Get Function Return Type
-        Variant::Type returnType = jenova::GetVariantTypeFromStdString(GetFunctionReturn(jenovaMethods[fid], scriptUID));
-        scriptFunction.methodInfo.return_val = PropertyInfo(returnType, "return");
+        std::string returnTypeString = GetFunctionReturn(jenovaMethods[fid], scriptUID);
+        Variant::Type returnType = jenova::GetVariantTypeFromStdString(returnTypeString);
+        PropertyInfo returnInfo(returnType, "return");
+        if (returnTypeString == "godot::Variant") returnInfo.usage = PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT;
+        scriptFunction.methodInfo.return_val = returnInfo;
 
         // Get Function Parameter Types
         jenova::ParameterTypeList paramTypes = GetFunctionParameters(jenovaMethods[fid], scriptUID);
         for (size_t pid = 0; pid < paramTypes.size(); pid++)
         {
             Variant::Type paramType = jenova::GetVariantTypeFromStdString(paramTypes[pid]);
-            if (paramType != Variant::NIL) scriptFunction.methodInfo.arguments.push_back(PropertyInfo(paramType, "Param"));
+            PropertyInfo paramInfo(paramType, "Param");
+            if (paramTypes[pid] == "godot::Variant")  paramInfo.usage = PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT;
+            scriptFunction.methodInfo.arguments.push_back(paramInfo);
         }
 
         // Name Added Arguments
         for (size_t argid = 0; argid < scriptFunction.methodInfo.arguments.size(); argid++)
         {
-            scriptFunction.methodInfo.arguments[argid].name = String(jenova::Format("Param%d", argid + 1).c_str());
+            scriptFunction.methodInfo.arguments[argid].name = String(jenova::Format("p%d", argid + 1).c_str());
         }
 
         // Add New Function to Container

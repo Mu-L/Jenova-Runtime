@@ -62,6 +62,9 @@
 #define JENOVA_VM_BEGIN
 #define JENOVA_VM_END
 
+// Jenova ScriptID Macro
+#define JENOVA_SCRIPT_ID
+
 // Jenova Property Macro
 #ifndef JENOVA_PROPERTY
 	#define JENOVA_PROPERTY(pType, pName, pValue, ...) pType pName = pValue;
@@ -69,7 +72,7 @@
 
 // Jenova Signal Macro
 #ifndef JENOVA_SIGNAL
-	#define JENOVA_SIGNAL(sName)
+	#define JENOVA_SIGNAL(sName, ...) void __jnvsignal__##sName(__VA_ARGS__) {};
 #endif
 
 // Jenova Class Name Macro
@@ -187,7 +190,13 @@ namespace jenova::sdk
 	{
 		// Script Caller
 		const godot::Object* self = nullptr;
+
+		// Script Context
 		const NativePtr context = nullptr;
+
+		// Constructor
+		Caller() = default;
+		explicit Caller(const godot::Object* object) : self(object), context(nullptr) {}
 	};
 
 	// Class Wrappers

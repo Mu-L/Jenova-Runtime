@@ -283,10 +283,12 @@ TypedArray<Dictionary> CPPScriptLanguage::_get_public_annotations() const
 }
 void CPPScriptLanguage::_profiling_start()
 {
+	// Begin Profiler Recording
 	JenovaProfiler::StartRecording();
 }
 void CPPScriptLanguage::_profiling_stop()
 {
+	// End Profiler Recording
 	JenovaProfiler::StopRecording();
 }
 void CPPScriptLanguage::_profiling_set_save_native_calls(bool p_enable)
@@ -303,39 +305,30 @@ int32_t CPPScriptLanguage::_profiling_get_frame_data(ScriptLanguageExtensionProf
 }
 void CPPScriptLanguage::_frame()
 {
+	// Signal Profiler
 	JenovaProfiler::Frame();
 }
 bool CPPScriptLanguage::_handles_global_class_type(const String& p_type) const
 {
-	jenova::VerboseByID(__LINE__, "_handles_global_class_type [%s]", AS_C_STRING(p_type));
 	return p_type == _get_type();
 }
 Dictionary CPPScriptLanguage::_get_global_class_name(const String& p_path) const
 {
-	// Remove
-	jenova::VerboseByID(__LINE__, "_get_global_class_name [%s]", AS_C_STRING(p_path));
-
 	// Return Global Class Name
 	Dictionary classInfo;
 	Ref<Resource> resource = ResourceLoader::get_singleton()->load(p_path);
 	Ref<CPPScript> cppScript = Object::cast_to<CPPScript>(resource.ptr());
 	if (cppScript.is_valid())
 	{
-		// Check for User-Defined Class Name
-		if (cppScript->has_source_code())
-		{
-			std::string className = jenova::ParseClassNameFromScriptSource(AS_STD_STRING(cppScript->get_source_code()));
-			if (!className.empty()) classInfo["name"] = AS_GD_STRING(className);
-			else classInfo["name"] = "NotFound";
-		}
-
 		// Create Class Info
-		if (classInfo["name"] == String("NotFound")) classInfo["name"] = " Jenova C++ Script";
+		classInfo["name"] = cppScript->get_global_name();
 		classInfo["base_type"] = jenova::GlobalSettings::JenovaScriptType;
 		String iconPath = p_path.replace(p_path.get_extension(), "svg");
 		if (FileAccess::file_exists(iconPath)) classInfo["icon_path"] = iconPath;
+		classInfo["is_abstract"] = cppScript->_is_abstract();
+		classInfo["is_tool"] = cppScript->_is_tool();
 
-		// Create Global Class If Not Exists
+		// Force Initialize Global Class If Not Exists
 		ProjectSettings::get_singleton()->get_global_class_list();
 	}
 	return classInfo;

@@ -337,6 +337,7 @@ void CPPScriptInstance::update_methods() const
 	auto functionContainer = JenovaInterpreter::GetFunctionContainer(AS_STD_STRING(GetIdentity()));
 	for (auto& scriptFunction : functionContainer.scriptFunctions)
 	{
+		if (scriptFunction.functionName.contains(StringName("__jnvsignal__"))) continue;
 		this->methodsInfo.push_back(scriptFunction.methodInfo);
 	}
 }

@@ -853,6 +853,7 @@ namespace jenova
 		constexpr char* ScriptBlockEndIdentifier				= "JENOVA_SCRIPT_END";
 		constexpr char* ScriptVMBeginIdentifier					= "JENOVA_VM_BEGIN";
 		constexpr char* ScriptVMEndIdentifier					= "JENOVA_VM_END";
+		constexpr char* ScriptIDIdentifier						= "JENOVA_SCRIPT_ID";
 		constexpr char* ScriptSignalCallbackIdentifier			= "JENOVA_CALLBACK";
 		constexpr char* ScriptPropertyIdentifier				= "JENOVA_PROPERTY";
 		constexpr char* ScriptSignalIdentifier					= "JENOVA_SIGNAL";

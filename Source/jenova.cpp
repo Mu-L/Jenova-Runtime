@@ -8988,6 +8988,7 @@ namespace jenova
 		// Special Types
 		if (typeNameCleaned == "void") return Variant::Type::NIL;
 		if (typeNameCleaned == "jenova::sdk::Caller") return Variant::Type::NIL;
+		if (typeNameCleaned == "Variant") return Variant::Type::NIL;
 
 		// Atomic types
 		if (typeNameCleaned == "bool") return Variant::Type::BOOL;
@@ -9560,7 +9561,7 @@ namespace jenova
 	}
 	std::string ParseClassNameFromScriptSource(const std::string& sourceCode)
 	{
-		std::regex pattern(R"(JENOVA_CLASS_NAME\s*\(\s*\"([^\"]+)\"\s*\))");
+		std::regex pattern(std::string(jenova::GlobalSettings::ScriptClassNameIdentifier) + R"(\s*\(\s*\"([^\"]+)\"\s*\))");
 		std::smatch match;
 		std::istringstream stream(sourceCode);
 		std::string line;
