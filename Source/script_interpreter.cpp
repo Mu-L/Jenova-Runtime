@@ -127,6 +127,16 @@ bool JenovaInterpreter::LoadModule(const uint8_t* moduleDataPtr, size_t moduleSi
     moduleBaseAddress = JenovaLoader::GetModuleBaseAddress(moduleHandle);
     if (!moduleBaseAddress) return false;
 
+    // Build Metadata Cache if Enabled
+    if (jenova::GlobalSettings::CacheInterpreterMetadata)
+    {
+        if (!JenovaInterpreter::BuildMetadataCache())
+        {
+            jenova::Error("Jenova Interpreter", "Failed to Build Metadata Cache.");
+            return false;
+        }
+    }
+
     // Update Property Storage From Metadata
     if (!JenovaInterpreter::UpdatePropertyStorageFromMetaData())
     {
@@ -248,113 +258,159 @@ std::string JenovaInterpreter::GetScriptPath(const std::string& scriptUID)
 }
 jenova::FunctionList JenovaInterpreter::GetFunctionsList(const std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Create Function List
-        jenova::FunctionList functionNames;
-        
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
-
-        // Add Functions to List
-        for (const auto& functionName : scriptMetadata.items()) functionNames.push_back(functionName.key());
-
-        // Return List
-        return functionNames;
-    }
-    catch (const std::exception&)
-    {
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end()) return it->second.functionNames;
         return jenova::FunctionList();
+    }
+    else
+    {
+        try
+        {
+            // Create Function List
+            jenova::FunctionList functionNames;
+
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
+
+            // Add Functions to List
+            for (const auto& functionName : scriptMetadata.items()) functionNames.push_back(functionName.key());
+
+            // Return List
+            return functionNames;
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return jenova::FunctionList();
+        }
     }
 }
 jenova::FunctionAddress JenovaInterpreter::GetFunctionAddress(const std::string& functionName, const std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Validate Script UID
-        if (!moduleMetaData["Scripts"].contains(scriptUID)) return 0;
-
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
-
-        // Get Function Address
-        for (const auto& funcName : scriptMetadata.items())
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end())
         {
-            if (funcName.key() == functionName)
-            {
-                // Calculate Offset + BaseAddress And Return
-                jenova::FunctionAddress functionOffset = funcName.value()["Offset"].get<jenova::FunctionAddress>();
-                return moduleBaseAddress + functionOffset;
-            }
+            auto funcIt = it->second.functionAddresses.find(functionName);
+            if (funcIt != it->second.functionAddresses.end()) return funcIt->second;
         }
-    }
-    catch (const std::exception&)
-    {
-        // Error Happened
         return 0;
     }
+    else
+    {
+        try
+        {
+            // Validate Script UID
+            if (!moduleMetaData["Scripts"].contains(scriptUID)) return 0;
 
-    // Function Was Not Found
-    return 0;
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
+
+            // Get Function Address
+            for (const auto& funcName : scriptMetadata.items())
+            {
+                if (funcName.key() == functionName)
+                {
+                    // Calculate Offset + BaseAddress And Return
+                    jenova::FunctionAddress functionOffset = funcName.value()["Offset"].get<jenova::FunctionAddress>();
+                    return moduleBaseAddress + functionOffset;
+                }
+            }
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return 0;
+        }
+
+        // Function Was Not Found
+        return 0;
+    }
 }
 jenova::ParameterTypeList JenovaInterpreter::GetFunctionParameters(const std::string& functionName, const std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Validate Script UID
-        if (!moduleMetaData["Scripts"].contains(scriptUID)) return jenova::ParameterTypeList();
-
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
-
-        // Get Function Parameters
-        for (const auto& funcName : scriptMetadata.items())
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end())
         {
-            if (funcName.key() == functionName)
-            {
-                jenova::ParameterTypeList parameterTypes;
-                int paramCount = funcName.value()["ParamCount"].get<int>();
-                for (int i = 1; i <= paramCount; ++i) parameterTypes.push_back(funcName.value()[jenova::Format("Param%02d", i)].get<std::string>());
-                return parameterTypes;
-            }
+            auto funcIt = it->second.functionParams.find(functionName);
+            if (funcIt != it->second.functionParams.end()) return funcIt->second;
         }
-    }
-    catch (const std::exception&)
-    {
-        // Error Happened
         return jenova::ParameterTypeList();
     }
+    else
+    {
+        try
+        {
+            // Validate Script UID
+            if (!moduleMetaData["Scripts"].contains(scriptUID)) return jenova::ParameterTypeList();
 
-    // Not Found
-    return jenova::ParameterTypeList();
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
+
+            // Get Function Parameters
+            for (const auto& funcName : scriptMetadata.items())
+            {
+                if (funcName.key() == functionName)
+                {
+                    jenova::ParameterTypeList parameterTypes;
+                    int paramCount = funcName.value()["ParamCount"].get<int>();
+                    for (int i = 1; i <= paramCount; ++i) parameterTypes.push_back(funcName.value()[jenova::Format("Param%02d", i)].get<std::string>());
+                    return parameterTypes;
+                }
+            }
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return jenova::ParameterTypeList();
+        }
+
+        // Not Found
+        return jenova::ParameterTypeList();
+    }
 }
 std::string JenovaInterpreter::GetFunctionReturn(const std::string& functionName, const std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Validate Script UID
-        if (!moduleMetaData["Scripts"].contains(scriptUID)) return "Unknown";
-
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
-
-        // Get Function Return Type
-        for (const auto& funcName : scriptMetadata.items())
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end())
         {
-            if (funcName.key() == functionName)
-            {
-                return funcName.value()["ReturnType"].get<std::string>();
-            }
+            auto funcIt = it->second.functionReturns.find(functionName);
+            if (funcIt != it->second.functionReturns.end()) return funcIt->second;
         }
-    }
-    catch (const std::exception&)
-    {
-        // Error Happened
         return "Unknown";
     }
+    else
+    {
+        try
+        {
+            // Validate Script UID
+            if (!moduleMetaData["Scripts"].contains(scriptUID)) return "Unknown";
 
-    // Not Found
-    return "Unknown";
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["methods"];
+
+            // Get Function Return Type
+            for (const auto& funcName : scriptMetadata.items())
+            {
+                if (funcName.key() == functionName) return funcName.value()["ReturnType"].get<std::string>();
+            }
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return "Unknown";
+        }
+
+        // Not Found
+        return "Unknown";
+    }
 }
 uintptr_t JenovaInterpreter::GetResolvedParameterPointer(const godot::Object* objectPtr, const godot::Variant* functionParameter, const std::string& parameterType)
 {
@@ -366,7 +422,7 @@ bool JenovaInterpreter::IsFunctionReturnable(const std::string& returnType)
     if (returnType == "void") return false;
     return true;
 }
-jenova::ScriptFunctionContainer JenovaInterpreter::GetFunctionContainer(const std::string& scriptUID)
+jenova::ScriptFunctionContainer JenovaInterpreter::CreateFunctionContainer(const std::string& scriptUID)
 {
     // Todo : For Faster Execution Implement Same as GetPropertyContainer
 
@@ -419,7 +475,7 @@ jenova::ScriptFunctionContainer JenovaInterpreter::GetFunctionContainer(const st
     // Return Function Container
     return functionContainer;
 }
-jenova::ScriptPropertyContainer JenovaInterpreter::GetPropertyContainer(const std::string& scriptUID)
+jenova::ScriptPropertyContainer JenovaInterpreter::CreatePropertyContainer(const std::string& scriptUID)
 {
     try
     {
@@ -444,6 +500,32 @@ jenova::ScriptPropertyContainer JenovaInterpreter::GetPropertyContainer(const st
     catch (const std::exception&)
     {
         return jenova::ScriptPropertyContainer();
+    }
+}
+jenova::ScriptFunctionContainer JenovaInterpreter::GetFunctionContainer(const std::string& scriptUID)
+{
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
+    {
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end()) return it->second.functionContainer;
+        return jenova::ScriptFunctionContainer();
+    }
+    else
+    {
+        return CreateFunctionContainer(scriptUID);
+    }
+}
+jenova::ScriptPropertyContainer JenovaInterpreter::GetPropertyContainer(const std::string& scriptUID)
+{
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
+    {
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end()) return it->second.propertyContainer;
+        return jenova::ScriptPropertyContainer();
+    }
+    else
+    {
+        return CreatePropertyContainer(scriptUID);
     }
 }
 Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount)
@@ -813,77 +895,115 @@ bool JenovaInterpreter::FlushPropertyStorage()
 }
 jenova::PropertyList JenovaInterpreter::GetPropertiesList(std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Create Property List
-        jenova::PropertyList propertyNames;
-
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["properties"];
-
-        // Add Property to List
-        for (const auto& propertyName : scriptMetadata.items()) propertyNames.push_back(propertyName.key());
-
-        // Return List
-        return propertyNames;
-    }
-    catch (const std::exception&)
-    {
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end()) return it->second.propertyNames;
         return jenova::PropertyList();
+    }
+    else
+    {
+        try
+        {
+            // Create Property List
+            jenova::PropertyList propertyNames;
+
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["properties"];
+
+            // Add Property to List
+            for (const auto& propertyName : scriptMetadata.items()) propertyNames.push_back(propertyName.key());
+
+            // Return List
+            return propertyNames;
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return jenova::PropertyList();
+        }
     }
 }
 std::string JenovaInterpreter::GetPropertyType(const std::string& propertyName, std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Validate Script UID
-        if (!moduleMetaData["Scripts"].contains(scriptUID)) return std::string();
-
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["properties"];
-
-        // Find and Return Property Type
-        for (const auto& prop : scriptMetadata.items())
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end())
         {
-            if (prop.key() == propertyName) return prop.value()["Type"].get<std::string>();
+            auto propIt = it->second.propertyTypes.find(propertyName);
+            if (propIt != it->second.propertyTypes.end()) return propIt->second;
         }
-    }
-    catch (const std::exception&)
-    {
         return std::string();
     }
+    else
+    {
+        try
+        {
+            // Validate Script UID
+            if (!moduleMetaData["Scripts"].contains(scriptUID)) return std::string();
 
-    // Property was not found
-    return std::string();
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["properties"];
+
+            // Find and Return Property Type
+            for (const auto& prop : scriptMetadata.items())
+            {
+                if (prop.key() == propertyName) return prop.value()["Type"].get<std::string>();
+            }
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return std::string();
+        }
+
+        // Property Was Not Found
+        return std::string();
+    }
 }
 jenova::PropertyAddress JenovaInterpreter::GetPropertyAddress(const std::string& propertyName, std::string& scriptUID)
 {
-    try
+    if (jenova::GlobalSettings::CacheInterpreterMetadata && isCacheReady)
     {
-        // Validate Script UID
-        if (!moduleMetaData["Scripts"].contains(scriptUID)) return 0;
-
-        // Get Script Metadata by UID
-        jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["properties"];
-
-        // Find and return Property Address
-        for (const auto& prop : scriptMetadata.items())
+        auto it = metadataCache.find(scriptUID);
+        if (it != metadataCache.end())
         {
-            if (prop.key() == propertyName)
-            {
-                // Calculate Offset + BaseAddress and Return the Address
-                jenova::PropertyAddress propertyOffset = prop.value()["Offset"].get<jenova::PropertyAddress>();
-                return moduleBaseAddress + propertyOffset;
-            }
+            auto propIt = it->second.propertyAddresses.find(propertyName);
+            if (propIt != it->second.propertyAddresses.end()) return propIt->second;
         }
-    }
-    catch (const std::exception&)
-    {
         return 0;
     }
+    else
+    {
+        try
+        {
+            // Validate Script UID
+            if (!moduleMetaData["Scripts"].contains(scriptUID)) return 0;
 
-    // Property was not found
-    return 0;
+            // Get Script Metadata by UID
+            jenova::json_t scriptMetadata = moduleMetaData["Scripts"][scriptUID]["properties"];
+
+            // Find and return Property Address
+            for (const auto& prop : scriptMetadata.items())
+            {
+                if (prop.key() == propertyName)
+                {
+                    // Calculate Offset + BaseAddress and Return the Address
+                    jenova::PropertyAddress propertyOffset = prop.value()["Offset"].get<jenova::PropertyAddress>();
+                    return moduleBaseAddress + propertyOffset;
+                }
+            }
+        }
+        catch (const std::exception&)
+        {
+            // Error Happened
+            return 0;
+        }
+
+        // Property Was Not Found
+        return 0;
+    }
 }
 jenova::PropertyPointer JenovaInterpreter::GetPropertyPointer(const String& propertyName, const String& scriptUID)
 {
@@ -1852,6 +1972,90 @@ bool JenovaInterpreter::UpdatePropertyStorageFromMetaData()
     catch (const std::exception& err)
     {
         jenova::Error("Jenova Interpreter", "Failed to Parse Metadata, Parser Error : %s", err.what());
+        return false;
+    }
+}
+bool JenovaInterpreter::BuildMetadataCache()
+{
+    // Clear Existing Cache
+    metadataCache.clear();
+    isCacheReady = false;
+
+    // Build Metadata Cache
+    try
+    {
+        // Iterate Through All Scripts in Metadata
+        for (const auto& script : moduleMetaData["Scripts"].items())
+        {
+            std::string scriptUID = script.key();
+            jenova::ScriptMetadataCache scriptCache;
+
+            // Parse Functions
+            if (script.value().contains("methods"))
+            {
+                jenova::json_t methodsMetadata = script.value()["methods"];
+
+                for (const auto& func : methodsMetadata.items())
+                {
+                    std::string functionName = func.key();
+
+                    // Add to Function List
+                    scriptCache.functionNames.push_back(functionName);
+
+                    // Get Function Offset and Calculate Address
+                    jenova::FunctionAddress functionOffset = func.value()["Offset"].get<jenova::FunctionAddress>();
+                    scriptCache.functionAddresses[functionName] = moduleBaseAddress + functionOffset;
+
+                    // Get Function Parameters
+                    jenova::ParameterTypeList parameterTypes;
+                    int paramCount = func.value()["ParamCount"].get<int>();
+                    for (int i = 1; i <= paramCount; ++i) parameterTypes.push_back(func.value()[jenova::Format("Param%02d", i)].get<std::string>());
+                    scriptCache.functionParams[functionName] = parameterTypes;
+
+                    // Get Function Return Type
+                    scriptCache.functionReturns[functionName] = func.value()["ReturnType"].get<std::string>();
+                }
+            }
+
+            // Parse Properties
+            if (script.value().contains("properties"))
+            {
+                jenova::json_t propertiesMetadata = script.value()["properties"];
+
+                for (const auto& prop : propertiesMetadata.items())
+                {
+                    std::string propertyName = prop.key();
+
+                    // Add to Property List
+                    scriptCache.propertyNames.push_back(propertyName);
+
+                    // Get Property Offset & Calculate Address
+                    jenova::PropertyAddress propertyOffset = prop.value()["Offset"].get<jenova::PropertyAddress>();
+                    scriptCache.propertyAddresses[propertyName] = moduleBaseAddress + propertyOffset;
+
+                    // Get Property Type
+                    scriptCache.propertyTypes[propertyName] = prop.value()["Type"].get<std::string>();
+                }
+            }
+
+            // Build Function Container
+            scriptCache.functionContainer = CreateFunctionContainer(scriptUID);
+
+            // Build Property Container
+            scriptCache.propertyContainer = CreatePropertyContainer(scriptUID);
+
+            // Store Cache for This Script
+            metadataCache[scriptUID] = scriptCache;
+        }
+
+        // All Good
+        isCacheReady = true;
+        return isCacheReady;
+    }
+    catch (const std::exception& err)
+    {
+        jenova::Error("Jenova Interpreter", "Failed to Build Metadata Cache, Error : %s", err.what());
+        metadataCache.clear();
         return false;
     }
 }

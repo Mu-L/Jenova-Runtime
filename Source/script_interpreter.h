@@ -19,8 +19,8 @@
 // Jenova Interpreter Definitions
 class JenovaInterpreter
 {
-// Module Management API
 public:
+    // Module Management API
     static void BootInterpreter();
     static bool InitializeInterpreter();
     static bool IsInterpreterInitialized();
@@ -39,6 +39,8 @@ public:
     static std::string GetFunctionReturn(const std::string& functionName, const std::string& scriptUID);
     static uintptr_t GetResolvedParameterPointer(const godot::Object* objectPtr, const godot::Variant* functionParameter, const std::string& parameterType);
     static bool IsFunctionReturnable(const std::string& returnType);
+    static jenova::ScriptFunctionContainer CreateFunctionContainer(const std::string& scriptUID);
+    static jenova::ScriptPropertyContainer CreatePropertyContainer(const std::string& scriptUID);
     static jenova::ScriptFunctionContainer GetFunctionContainer(const std::string& scriptUID);
     static jenova::ScriptPropertyContainer GetPropertyContainer(const std::string& scriptUID);
     static Variant CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount);
@@ -62,14 +64,15 @@ public:
     static jenova::ModuleHandle LoadShellModule(const uint8_t* moduleDataPtr, size_t moduleSize);
 
 public:
-// Metadata Management API
+    // Metadata Management API
     static jenova::SerializedData GenerateModuleMetadata(const std::string& mapFilePath, const jenova::ModuleList& scriptModules, const jenova::BuildResult& buildResult);
     static void GenerateExtraMetadata(jenova::json_t& metaData, const jenova::BuildResult& buildResult);
     static bool UpdateConfigurationsFromMetaData(const jenova::SerializedData& metaData);
     static bool UpdatePropertyStorageFromMetaData();
+    static bool BuildMetadataCache();
 
-// Module Database API
 public:
+    // Module Database API
     static bool CreateModuleDatabase(const std::string& moduleDatabaseName, const uint8_t* moduleDataPtr, size_t moduleSize, const jenova::SerializedData& metaData);
     static bool CreateModuleDatabase(const std::string& moduleDatabaseName, const jenova::BuildResult& buildResult);
     static bool DeployFromDatabase(const std::string& moduleDatabaseName);
@@ -79,9 +82,11 @@ private:
     static inline bool                          isInitialized           = false;
     static inline bool                          allowExecution          = false;
     static inline bool                          isExecuting             = false;
+    static inline bool                          isCacheReady            = false;
     static inline jenova::ModuleHandle          moduleHandle            = nullptr;
     static inline jenova::ModuleAddress         moduleBaseAddress       = 0;
     static inline jenova::json_t                moduleMetaData          = "{}";
+    static inline jenova::MetadataCache         metadataCache           = jenova::MetadataCache();
     static inline size_t                        moduleBinarySize        = 0;
     static inline bool                          hasDebugInformation     = false;
     static inline bool                          executeInDebugMode      = false;

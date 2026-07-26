@@ -5403,27 +5403,27 @@ namespace jenova
 		ExtensionInitializerData ExtensionInitData = {0};
 
 		// Configurations
-		jenova::EngineMode CurrentEngineMode = jenova::EngineMode::Unknown;
-		jenova::ProfilingMode CurrentProfilingMode = jenova::ProfilingMode::Disabled;
-		jenova::BuildAndRunMode CurrentBuildAndRunMode = jenova::BuildAndRunMode::DoNothing;
-		jenova::ChangesTriggerMode CurrentChangesTriggerMode = jenova::ChangesTriggerMode::DoNothing;
-		jenova::EditorVerboseOutput CurrentEditorVerboseOutput = jenova::EditorVerboseOutput::StandardOutput;
+		jenova::EngineMode CurrentEngineMode							= jenova::EngineMode::Unknown;
+		jenova::ProfilingMode CurrentProfilingMode						= jenova::ProfilingMode::Disabled;
+		jenova::BuildAndRunMode CurrentBuildAndRunMode					= jenova::BuildAndRunMode::DoNothing;
+		jenova::ChangesTriggerMode CurrentChangesTriggerMode			= jenova::ChangesTriggerMode::DoNothing;
+		jenova::EditorVerboseOutput CurrentEditorVerboseOutput			= jenova::EditorVerboseOutput::StandardOutput;
 
 		// Database
-		std::string CurrentJenovaCacheDirectory = "";
-		std::string CurrentJenovaGeneratedConfiguration = "";
-		std::string CurrentJenovaRuntimeModulePath = "";
+		std::string CurrentJenovaCacheDirectory							= "";
+		std::string CurrentJenovaGeneratedConfiguration					= "";
+		std::string CurrentJenovaRuntimeModulePath						= "";
 
 		// Flags
-		bool DeveloperModeActivated = jenova::GlobalSettings::VerboseEnabled;
-		bool UseHotReloadAtRuntime = true;
-		bool UseMonospaceFontForTerminal = true;
-		bool UseManagedSafeExecution = true;
-		bool UseBuiltinSDK = true;
-		bool RefreshSceneTreeAfterBuild = false;
+		bool DeveloperModeActivated										= jenova::GlobalSettings::VerboseEnabled;
+		bool UseHotReloadAtRuntime										= true;
+		bool UseMonospaceFontForTerminal								= true;
+		bool UseManagedSafeExecution									= true;
+		bool UseBuiltinSDK												= true;
+		bool RefreshSceneTreeAfterBuild									= false;
 
 		// Values
-		int TerminalDefaultFontSize = 12;
+		int TerminalDefaultFontSize										= 12;
 	}
 
 	// Operating System Abstraction Layer

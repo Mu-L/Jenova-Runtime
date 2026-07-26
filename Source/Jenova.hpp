@@ -337,6 +337,7 @@ namespace jenova
 {
 	// Forward Declarations
 	struct ScriptModule;
+	struct ScriptMetadataCache;
 	struct JenovaPackage;
 	struct AddonConfig;
 	struct ToolConfig;
@@ -385,6 +386,7 @@ namespace jenova
 	typedef std::unordered_map<ModuleHandle, json_t> LoadedAddons;
 	typedef std::unordered_map<ModuleHandle, ToolConfig> LoadedTools;
 	typedef std::unordered_map<UniqueID, QueuedFunction> FutureQueue;
+	typedef std::unordered_map<std::string, ScriptMetadataCache> MetadataCache;
 	typedef std::map<String, MemoryBuffer> ResourceDatabase;
 	typedef Vector<Ref<Resource>> ResourceCollection;
 	typedef std::function<void()> FutureFunction;
@@ -662,12 +664,25 @@ namespace jenova
 		String scriptUID;
 		Vector<ScriptProperty> scriptProperties;
 	};
+	struct ScriptMetadataCache
+	{
+		jenova::FunctionList functionNames;
+		jenova::PropertyList propertyNames;
+		jenova::ScriptFunctionContainer functionContainer;
+		jenova::ScriptPropertyContainer propertyContainer;
+
+		std::unordered_map<std::string, jenova::FunctionAddress> functionAddresses;
+		std::unordered_map<std::string, jenova::PropertyAddress> propertyAddresses;
+		std::unordered_map<std::string, jenova::ParameterTypeList> functionParams;
+		std::unordered_map<std::string, std::string> functionReturns;
+		std::unordered_map<std::string, std::string> propertyTypes;
+	};
 	struct ScriptFileState
 	{
-		bool isValid = false;
-		FileTime creationTime = { 0 };
-		FileTime accessTime = { 0 };
-		FileTime writeTime = { 0 };
+		bool		isValid = false;
+		FileTime	creationTime = { 0 };
+		FileTime	accessTime = { 0 };
+		FileTime	writeTime = { 0 };
 	};
 	struct CompileResult
 	{
@@ -811,6 +826,7 @@ namespace jenova
 		constexpr bool UpdateSelectionAfterBuild				= true;
 		constexpr bool SafeExitOnPluginUnload					= true;
 		constexpr bool HandlePreLaunchErrors					= true;
+		constexpr bool CacheInterpreterMetadata					= true;
 		constexpr bool AskAboutOpeningVisualStudio				= true;
 		constexpr bool AskAboutOpeningVSCode					= true;
 		constexpr bool AskAboutOpeningCLion						= true;
