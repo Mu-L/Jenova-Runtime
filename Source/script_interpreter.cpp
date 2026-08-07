@@ -424,8 +424,6 @@ bool JenovaInterpreter::IsFunctionReturnable(const std::string& returnType)
 }
 jenova::ScriptFunctionContainer JenovaInterpreter::CreateFunctionContainer(const std::string& scriptUID)
 {
-    // Todo : For Faster Execution Implement Same as GetPropertyContainer
-
     // Create Function Container
     jenova::ScriptFunctionContainer functionContainer;
     functionContainer.scriptUID = AS_GD_STRING(scriptUID);
@@ -664,11 +662,11 @@ Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* in
                 if (JenovaProfiler::IsEnabled())
                 {
                     if (!JenovaInterpreter::IsExecutingFunction()) JenovaProfiler::SetCurrentExecutionContext(scriptPath, functionName);
-                    JenovaTinyProfiler::CreateCheckpoint("NitroJITExecution");
+                    TP_CHECKPOINT_SET("NitroJITExecution");
                     SetExecutionState(true);
                     result = callerFunction();
                     SetExecutionState(false);
-                    double executionDuration = JenovaTinyProfiler::GetCheckpointTimeAndDispose("NitroJITExecution");
+                    double executionDuration = TP_CHECKPOINT_GET("NitroJITExecution");
                     JenovaProfiler::AddExecutionRecord(scriptPath, functionName, executionDuration);
                 }
                 else
@@ -694,11 +692,11 @@ Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* in
                 if (JenovaProfiler::IsEnabled())
                 {
                     if (!JenovaInterpreter::IsExecutingFunction()) JenovaProfiler::SetCurrentExecutionContext(scriptPath, functionName);
-                    JenovaTinyProfiler::CreateCheckpoint(GenerateFunctionUniqueID(scriptPath, functionName));
+                    TP_CHECKPOINT_SET(GenerateFunctionUniqueID(scriptPath, functionName));
                     SetExecutionState(true);
                     callerFunction();
                     SetExecutionState(false);
-                    double executionDuration = JenovaTinyProfiler::GetCheckpointTimeAndDispose(GenerateFunctionUniqueID(scriptPath, functionName));
+                    double executionDuration = TP_CHECKPOINT_GET(GenerateFunctionUniqueID(scriptPath, functionName));
                     JenovaProfiler::AddExecutionRecord(scriptPath, functionName, executionDuration);
                 }
                 else
@@ -813,11 +811,11 @@ Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* in
         if (JenovaProfiler::IsEnabled())
         {
             if (!JenovaInterpreter::IsExecutingFunction()) JenovaProfiler::SetCurrentExecutionContext(scriptPath, functionName);
-            JenovaTinyProfiler::CreateCheckpoint(GenerateFunctionUniqueID(scriptPath, functionName));
+            TP_CHECKPOINT_SET(GenerateFunctionUniqueID(scriptPath, functionName));
             SetExecutionState(true);
             result = interpreterCaller();
             SetExecutionState(false);
-            double executionDuration = JenovaTinyProfiler::GetCheckpointTimeAndDispose(GenerateFunctionUniqueID(scriptPath, functionName));
+            double executionDuration = TP_CHECKPOINT_GET(GenerateFunctionUniqueID(scriptPath, functionName));
             JenovaProfiler::AddExecutionRecord(scriptPath, functionName, executionDuration);
         }
         else

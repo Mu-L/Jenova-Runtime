@@ -1521,7 +1521,7 @@ namespace jenova
 				}
 
 				// Create Project Build Profiler Checkpoint
-				JenovaTinyProfiler::CreateCheckpoint("JenovaProjectBuild");
+				TP_CHECKPOINT_SET("JenovaProjectBuild");
 
 				// Verbose Build
 				jenova::Output("Building Project C++ Scripts...");
@@ -1766,7 +1766,7 @@ namespace jenova
 					jenova::Output("Compilation Mode : [color=#7834f7]Multi-Thread / Multi-Process[/color]");
 
 					// Create Compile Profiler Checkpoint
-					JenovaTinyProfiler::CreateCheckpoint("JenovaCompileMT");
+					TP_CHECKPOINT_SET("JenovaCompileMT");
 
 					// Compile Scripts By Module
 					jenova::CompileResult compilerResult = jenovaCompiler->CompileScriptModuleContainer(jenova::ScriptModuleContainer(scriptModules));
@@ -1776,7 +1776,7 @@ namespace jenova
 					{
 						if (compilerResult.hasError)
 						{
-							jenova::Error("Jenova Builder", "Compile Error :\n%s", AS_C_STRING(compilerResult.compileError));
+							jenova::Error("Jenova Builder", "Compile Error :\n%s", jenova::ProcessCompilerError(compilerResult.compileError).c_str());
 						}
 
 						// Compile Failed
@@ -1787,7 +1787,7 @@ namespace jenova
 					// Check If Any Compile Was Done
 					if (compilerResult.scriptsCount == 0)
 					{
-						jenova::OutputColored("#2ebc78", "Falling Back to Previous Build, No Change Detected. Fallback Time : [color=#c8e38a]%f ms[/color]", JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaCompileMT"));
+						jenova::OutputColored("#2ebc78", "Falling Back to Previous Build, No Change Detected. Fallback Time : [color=#c8e38a]%f ms[/color]", TP_CHECKPOINT_GET("JenovaCompileMT"));
 					
 						// Start Interpreter Execution
 						JenovaInterpreter::SetExecutionPermission(true);
@@ -1803,7 +1803,7 @@ namespace jenova
 					}
 
 					// Verbose
-					jenova::Output("All Script Modules Compiled, Compile Time : [color=#c8e38a]%f ms[/color]", JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaCompileMT"));
+					jenova::Output("All Script Modules Compiled, Compile Time : [color=#c8e38a]%f ms[/color]", TP_CHECKPOINT_GET("JenovaCompileMT"));
 				}
 				else
 				{
@@ -1814,7 +1814,7 @@ namespace jenova
 					for (const auto& scriptModule : scriptModules)
 					{
 						// Create Compile Profiler Checkpoint
-						JenovaTinyProfiler::CreateCheckpoint("JenovaCompileST");
+						TP_CHECKPOINT_SET("JenovaCompileST");
 
 						// Compile Script By Module
 						jenova::CompileResult compilerResult = jenovaCompiler->CompileScriptModuleContainer(jenova::ScriptModuleContainer(scriptModule, scriptModules));
@@ -1824,7 +1824,7 @@ namespace jenova
 						{
 							if (compilerResult.hasError)
 							{
-								jenova::Error("Jenova Builder", "Compile Error :\n%s", AS_C_STRING(compilerResult.compileError));
+								jenova::Error("Jenova Builder", "Compile Error :\n%s", jenova::ProcessCompilerError(compilerResult.compileError).c_str());
 							}
 
 							// Compile Failed
@@ -1839,12 +1839,12 @@ namespace jenova
 						jenova::Output("Script Module [[color=#70a9d4]%s[/color]] [[color=#91b553]%s[/color]] [%s] Compiled, Compile Time : [color=#c8e38a]%f ms[/color]",
 							AS_C_STRING(scriptModule.scriptFilename), AS_C_STRING(scriptModule.scriptUID),
 							scriptModule.scriptType == jenova::ScriptModuleType::UsedScript ? "[color=#24ed49]Used[/color]" : "[color=#ed2456]Unused[/color]",
-							JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaCompileST"));
+							TP_CHECKPOINT_GET("JenovaCompileST"));
 					}
 				}
 
 				// Create Build Profiler Checkpoint
-				JenovaTinyProfiler::CreateCheckpoint("JenovaBuild");
+				TP_CHECKPOINT_SET("JenovaBuild");
 				
 				// Link And Generate Final Binary
 				jenova::Output("Generating Module...");
@@ -1864,8 +1864,8 @@ namespace jenova
 				}
 
 				// Verbose Build Success
-				jenova::Output("Module Generated, Generate Time : [color=#c8e38a]%f ms[/color]", JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaBuild"));
-				jenova::OutputColored("#2ebc78", "Project Build Completed! Project Build Time : [color=#eb9234]%f ms[/color]", JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaProjectBuild"));
+				jenova::Output("Module Generated, Generate Time : [color=#c8e38a]%f ms[/color]", TP_CHECKPOINT_GET("JenovaBuild"));
+				jenova::OutputColored("#2ebc78", "Project Build Completed! Project Build Time : [color=#eb9234]%f ms[/color]", TP_CHECKPOINT_GET("JenovaProjectBuild"));
 
 				// Cache Module To Database
 				if (!JenovaInterpreter::CreateModuleDatabase(jenova::GlobalSettings::DefaultModuleDatabaseFile, buildResult))
@@ -1956,7 +1956,7 @@ namespace jenova
 				}
 
 				// Create Project Build Profiler Checkpoint
-				JenovaTinyProfiler::CreateCheckpoint("JenovaProjectClean");
+				TP_CHECKPOINT_SET("JenovaProjectClean");
 
 				// Verbose
 				jenova::Output("Cleaning Project Cache...");
@@ -1968,7 +1968,7 @@ namespace jenova
 				if (!std::filesystem::exists(jenovaCacheDirectory))
 				{
 					jenova::Output("No Cache Folder to Delete.");
-					JenovaTinyProfiler::DeleteCheckpoint("JenovaProjectClean");
+					TP_CHECKPOINT_UNSET("JenovaProjectClean");
 					return;
 				}
 
@@ -1976,7 +1976,7 @@ namespace jenova
 				if (std::filesystem::is_empty(jenovaCacheDirectory))
 				{
 					jenova::Output("No Cache Files to Delete. The Cache is Already Empty.");
-					JenovaTinyProfiler::DeleteCheckpoint("JenovaProjectClean");
+					TP_CHECKPOINT_UNSET("JenovaProjectClean");
 					return;
 				}
 
@@ -2030,7 +2030,7 @@ namespace jenova
 				}
 
 				// Verbose
-				jenova::OutputColored("#4287f5", "Project Cleaned, Cleaning Time : [color=#eb9234]%f ms[/color]", JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaProjectClean"));
+				jenova::OutputColored("#4287f5", "Project Cleaned, Cleaning Time : [color=#eb9234]%f ms[/color]", TP_CHECKPOINT_GET("JenovaProjectClean"));
 			}
 
 			// Module Bootstraper
@@ -2056,7 +2056,7 @@ namespace jenova
 				}
 
 				// Create Module Bootstrap Profiler Checkpoint
-				JenovaTinyProfiler::CreateCheckpoint("JenovaBootstrapModule");
+				TP_CHECKPOINT_SET("JenovaBootstrapModule");
 
 				// Parse And Progress Jenova Configuration
 				jenova::json_t jenovaConfiguration;
@@ -2230,7 +2230,7 @@ namespace jenova
 				}
 
 				// Verbose
-				jenova::OutputColored("#2ebc78", "Build Bootstrapping Completed! Bootstrap Time : [color=#eb9234]%f ms[/color]", JenovaTinyProfiler::GetCheckpointTimeAndDispose("JenovaBootstrapModule"));
+				jenova::OutputColored("#2ebc78", "Build Bootstrapping Completed! Bootstrap Time : [color=#eb9234]%f ms[/color]", TP_CHECKPOINT_GET("JenovaBootstrapModule"));
 
 				// Call Build Success
 				OnBuildSuccess();
@@ -5432,6 +5432,8 @@ namespace jenova
 	{
 		// Windows Implementation
 		#ifdef TARGET_PLATFORM_WINDOWS
+			filesystem::path libDir(libPath);
+			if (libDir.has_parent_path()) AddEnvironmentPath(libDir.parent_path().string().c_str(), "PATH");
 			return LoadLibraryA(libPath);
 		#endif
 
@@ -8634,88 +8636,139 @@ namespace jenova
 		// Default case (unsupported type)
 		return new Variant(*variantObject);
 	}
+	uint32_t SolvePropertyEnumFlagFromString(const std::string& enumFlagStr)
+	{
+		if (enumFlagStr.find('|') != std::string::npos)
+		{
+			uint32_t result = 0;
+			std::stringstream ss(enumFlagStr);
+			std::string token;
+			while (std::getline(ss, token, '|'))
+			{
+				token.erase(0, token.find_first_not_of(" \t"));
+				token.erase(token.find_last_not_of(" \t") + 1);
+				if (!token.empty()) result |= GetPropertyEnumFlagFromString(token);
+			}
+			return result;
+		}
+
+		// Fallback If Only Single Value
+		return GetPropertyEnumFlagFromString(enumFlagStr);
+	}
 	uint32_t GetPropertyEnumFlagFromString(const std::string enumFlagStr)
 	{
 		// Check if the input is an integer
 		if (std::all_of(enumFlagStr.begin(), enumFlagStr.end(), ::isdigit)) return static_cast<uint32_t>(std::stoi(enumFlagStr));
 
+		// Advanced Flag Checker
+		auto FlagMatch = [&](const std::string& fullName) -> bool
+		{
+			// Type A : Exact Match
+			if (enumFlagStr == fullName) return true;
+
+			// Type B : Short Version Match
+			if (fullName.compare(0, 9, "PROPERTY_") == 0)
+			{
+				if (enumFlagStr == fullName.substr(9)) return true;
+			}
+
+			// Type C : Shorter Version Match
+			if (fullName.compare(0, 14, "PROPERTY_HINT_") == 0)
+			{
+				if (enumFlagStr == fullName.substr(14)) return true;
+			}
+			if (fullName.compare(0, 15, "PROPERTY_USAGE_") == 0)
+			{
+				if (enumFlagStr == fullName.substr(15)) return true;
+			}
+				
+			// No Match
+			return false;
+		};
+
 		// Property Hint Flags
-		if (enumFlagStr == "PROPERTY_HINT_NONE") return PROPERTY_HINT_NONE;
-		else if (enumFlagStr == "PROPERTY_HINT_RANGE") return PROPERTY_HINT_RANGE;
-		else if (enumFlagStr == "PROPERTY_HINT_ENUM") return PROPERTY_HINT_ENUM;
-		else if (enumFlagStr == "PROPERTY_HINT_ENUM_SUGGESTION") return PROPERTY_HINT_ENUM_SUGGESTION;
-		else if (enumFlagStr == "PROPERTY_HINT_EXP_EASING") return PROPERTY_HINT_EXP_EASING;
-		else if (enumFlagStr == "PROPERTY_HINT_LINK") return PROPERTY_HINT_LINK;
-		else if (enumFlagStr == "PROPERTY_HINT_FLAGS") return PROPERTY_HINT_FLAGS;
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_2D_RENDER") return PROPERTY_HINT_LAYERS_2D_RENDER;
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_2D_PHYSICS") return PROPERTY_HINT_LAYERS_2D_PHYSICS;
-		else if (enumFlagStr == "PROPERTY_HINT_FILE") return PROPERTY_HINT_FILE;
-		else if (enumFlagStr == "PROPERTY_HINT_DIR") return PROPERTY_HINT_DIR;
-		else if (enumFlagStr == "PROPERTY_HINT_GLOBAL_FILE") return PROPERTY_HINT_GLOBAL_FILE;
-		else if (enumFlagStr == "PROPERTY_HINT_GLOBAL_DIR") return PROPERTY_HINT_GLOBAL_DIR;
-		else if (enumFlagStr == "PROPERTY_HINT_RESOURCE_TYPE") return PROPERTY_HINT_RESOURCE_TYPE;
-		else if (enumFlagStr == "PROPERTY_HINT_MULTILINE_TEXT") return PROPERTY_HINT_MULTILINE_TEXT;
-		else if (enumFlagStr == "PROPERTY_HINT_EXPRESSION") return PROPERTY_HINT_EXPRESSION;
-		else if (enumFlagStr == "PROPERTY_HINT_PLACEHOLDER_TEXT") return PROPERTY_HINT_PLACEHOLDER_TEXT;
-		else if (enumFlagStr == "PROPERTY_HINT_COLOR_NO_ALPHA") return PROPERTY_HINT_COLOR_NO_ALPHA;
-		else if (enumFlagStr == "PROPERTY_HINT_OBJECT_ID") return PROPERTY_HINT_OBJECT_ID;
-		else if (enumFlagStr == "PROPERTY_HINT_TYPE_STRING") return PROPERTY_HINT_TYPE_STRING;
-		else if (enumFlagStr == "PROPERTY_HINT_NODE_PATH_TO_EDITED_NODE") return PROPERTY_HINT_NODE_PATH_TO_EDITED_NODE;
-		else if (enumFlagStr == "PROPERTY_HINT_OBJECT_TOO_BIG") return PROPERTY_HINT_OBJECT_TOO_BIG;
-		else if (enumFlagStr == "PROPERTY_HINT_NODE_PATH_VALID_TYPES") return PROPERTY_HINT_NODE_PATH_VALID_TYPES;
-		else if (enumFlagStr == "PROPERTY_HINT_SAVE_FILE") return PROPERTY_HINT_SAVE_FILE;
-		else if (enumFlagStr == "PROPERTY_HINT_GLOBAL_SAVE_FILE") return PROPERTY_HINT_GLOBAL_SAVE_FILE;
-		else if (enumFlagStr == "PROPERTY_HINT_INT_IS_OBJECTID") return PROPERTY_HINT_INT_IS_OBJECTID;
-		else if (enumFlagStr == "PROPERTY_HINT_INT_IS_POINTER") return PROPERTY_HINT_INT_IS_POINTER;
-		else if (enumFlagStr == "PROPERTY_HINT_ARRAY_TYPE") return PROPERTY_HINT_ARRAY_TYPE;
-		else if (enumFlagStr == "PROPERTY_HINT_LOCALE_ID") return PROPERTY_HINT_LOCALE_ID;
-		else if (enumFlagStr == "PROPERTY_HINT_LOCALIZABLE_STRING") return PROPERTY_HINT_LOCALIZABLE_STRING;
-		else if (enumFlagStr == "PROPERTY_HINT_NODE_TYPE") return PROPERTY_HINT_NODE_TYPE;
-		else if (enumFlagStr == "PROPERTY_HINT_HIDE_QUATERNION_EDIT") return PROPERTY_HINT_HIDE_QUATERNION_EDIT;
-		else if (enumFlagStr == "PROPERTY_HINT_PASSWORD") return PROPERTY_HINT_PASSWORD;
-		else if (enumFlagStr == "PROPERTY_HINT_MAX") return PROPERTY_HINT_MAX;
+		if (FlagMatch("PROPERTY_HINT_NONE")) return PROPERTY_HINT_NONE;
+		else if (FlagMatch("PROPERTY_HINT_RANGE")) return PROPERTY_HINT_RANGE;
+		else if (FlagMatch("PROPERTY_HINT_ENUM")) return PROPERTY_HINT_ENUM;
+		else if (FlagMatch("PROPERTY_HINT_ENUM_SUGGESTION")) return PROPERTY_HINT_ENUM_SUGGESTION;
+		else if (FlagMatch("PROPERTY_HINT_EXP_EASING")) return PROPERTY_HINT_EXP_EASING;
+		else if (FlagMatch("PROPERTY_HINT_LINK")) return PROPERTY_HINT_LINK;
+		else if (FlagMatch("PROPERTY_HINT_FLAGS")) return PROPERTY_HINT_FLAGS;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_2D_RENDER")) return PROPERTY_HINT_LAYERS_2D_RENDER;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_2D_PHYSICS")) return PROPERTY_HINT_LAYERS_2D_PHYSICS;
+		else if (FlagMatch("PROPERTY_HINT_FILE")) return PROPERTY_HINT_FILE;
+		else if (FlagMatch("PROPERTY_HINT_DIR")) return PROPERTY_HINT_DIR;
+		else if (FlagMatch("PROPERTY_HINT_GLOBAL_FILE")) return PROPERTY_HINT_GLOBAL_FILE;
+		else if (FlagMatch("PROPERTY_HINT_GLOBAL_DIR")) return PROPERTY_HINT_GLOBAL_DIR;
+		else if (FlagMatch("PROPERTY_HINT_RESOURCE_TYPE")) return PROPERTY_HINT_RESOURCE_TYPE;
+		else if (FlagMatch("PROPERTY_HINT_MULTILINE_TEXT")) return PROPERTY_HINT_MULTILINE_TEXT;
+		else if (FlagMatch("PROPERTY_HINT_EXPRESSION")) return PROPERTY_HINT_EXPRESSION;
+		else if (FlagMatch("PROPERTY_HINT_PLACEHOLDER_TEXT")) return PROPERTY_HINT_PLACEHOLDER_TEXT;
+		else if (FlagMatch("PROPERTY_HINT_COLOR_NO_ALPHA")) return PROPERTY_HINT_COLOR_NO_ALPHA;
+		else if (FlagMatch("PROPERTY_HINT_OBJECT_ID")) return PROPERTY_HINT_OBJECT_ID;
+		else if (FlagMatch("PROPERTY_HINT_TYPE_STRING")) return PROPERTY_HINT_TYPE_STRING;
+		else if (FlagMatch("PROPERTY_HINT_NODE_PATH_TO_EDITED_NODE")) return PROPERTY_HINT_NODE_PATH_TO_EDITED_NODE;
+		else if (FlagMatch("PROPERTY_HINT_OBJECT_TOO_BIG")) return PROPERTY_HINT_OBJECT_TOO_BIG;
+		else if (FlagMatch("PROPERTY_HINT_NODE_PATH_VALID_TYPES")) return PROPERTY_HINT_NODE_PATH_VALID_TYPES;
+		else if (FlagMatch("PROPERTY_HINT_SAVE_FILE")) return PROPERTY_HINT_SAVE_FILE;
+		else if (FlagMatch("PROPERTY_HINT_GLOBAL_SAVE_FILE")) return PROPERTY_HINT_GLOBAL_SAVE_FILE;
+		else if (FlagMatch("PROPERTY_HINT_INT_IS_OBJECTID")) return PROPERTY_HINT_INT_IS_OBJECTID;
+		else if (FlagMatch("PROPERTY_HINT_INT_IS_POINTER")) return PROPERTY_HINT_INT_IS_POINTER;
+		else if (FlagMatch("PROPERTY_HINT_ARRAY_TYPE")) return PROPERTY_HINT_ARRAY_TYPE;
+		else if (FlagMatch("PROPERTY_HINT_DICTIONARY_TYPE")) return PROPERTY_HINT_DICTIONARY_TYPE;
+		else if (FlagMatch("PROPERTY_HINT_LOCALE_ID")) return PROPERTY_HINT_LOCALE_ID;
+		else if (FlagMatch("PROPERTY_HINT_LOCALIZABLE_STRING")) return PROPERTY_HINT_LOCALIZABLE_STRING;
+		else if (FlagMatch("PROPERTY_HINT_NODE_TYPE")) return PROPERTY_HINT_NODE_TYPE;
+		else if (FlagMatch("PROPERTY_HINT_HIDE_QUATERNION_EDIT")) return PROPERTY_HINT_HIDE_QUATERNION_EDIT;
+		else if (FlagMatch("PROPERTY_HINT_PASSWORD")) return PROPERTY_HINT_PASSWORD;
+		else if (FlagMatch("PROPERTY_HINT_TOOL_BUTTON")) return PROPERTY_HINT_TOOL_BUTTON;
+		else if (FlagMatch("PROPERTY_HINT_ONESHOT")) return PROPERTY_HINT_ONESHOT;
+		else if (FlagMatch("PROPERTY_HINT_GROUP_ENABLE")) return PROPERTY_HINT_GROUP_ENABLE;
+		else if (FlagMatch("PROPERTY_HINT_INPUT_NAME")) return PROPERTY_HINT_INPUT_NAME;
+		else if (FlagMatch("PROPERTY_HINT_FILE_PATH")) return PROPERTY_HINT_FILE_PATH;
+		else if (FlagMatch("PROPERTY_HINT_MAX")) return PROPERTY_HINT_MAX;
 
 		#ifndef LITHIUM_EDITION
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_2D_NAVIGATION") return PROPERTY_HINT_LAYERS_2D_NAVIGATION;
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_3D_RENDER") return PROPERTY_HINT_LAYERS_3D_RENDER;
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_3D_PHYSICS") return PROPERTY_HINT_LAYERS_3D_PHYSICS;
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_3D_NAVIGATION") return PROPERTY_HINT_LAYERS_3D_NAVIGATION;
-		else if (enumFlagStr == "PROPERTY_HINT_LAYERS_AVOIDANCE") return PROPERTY_HINT_LAYERS_AVOIDANCE;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_2D_NAVIGATION")) return PROPERTY_HINT_LAYERS_2D_NAVIGATION;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_3D_RENDER")) return PROPERTY_HINT_LAYERS_3D_RENDER;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_3D_PHYSICS")) return PROPERTY_HINT_LAYERS_3D_PHYSICS;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_3D_NAVIGATION")) return PROPERTY_HINT_LAYERS_3D_NAVIGATION;
+		else if (FlagMatch("PROPERTY_HINT_LAYERS_AVOIDANCE")) return PROPERTY_HINT_LAYERS_AVOIDANCE;
 		#endif
 
 		// Property Usage Flags
-		if (enumFlagStr == "PROPERTY_USAGE_NONE") return PROPERTY_USAGE_NONE;
-		else if (enumFlagStr == "PROPERTY_USAGE_STORAGE") return PROPERTY_USAGE_STORAGE;
-		else if (enumFlagStr == "PROPERTY_USAGE_EDITOR") return PROPERTY_USAGE_EDITOR;
-		else if (enumFlagStr == "PROPERTY_USAGE_INTERNAL") return PROPERTY_USAGE_INTERNAL;
-		else if (enumFlagStr == "PROPERTY_USAGE_CHECKABLE") return PROPERTY_USAGE_CHECKABLE;
-		else if (enumFlagStr == "PROPERTY_USAGE_CHECKED") return PROPERTY_USAGE_CHECKED;
-		else if (enumFlagStr == "PROPERTY_USAGE_GROUP") return PROPERTY_USAGE_GROUP;
-		else if (enumFlagStr == "PROPERTY_USAGE_CATEGORY") return PROPERTY_USAGE_CATEGORY;
-		else if (enumFlagStr == "PROPERTY_USAGE_SUBGROUP") return PROPERTY_USAGE_SUBGROUP;
-		else if (enumFlagStr == "PROPERTY_USAGE_CLASS_IS_BITFIELD") return PROPERTY_USAGE_CLASS_IS_BITFIELD;
-		else if (enumFlagStr == "PROPERTY_USAGE_NO_INSTANCE_STATE") return PROPERTY_USAGE_NO_INSTANCE_STATE;
-		else if (enumFlagStr == "PROPERTY_USAGE_RESTART_IF_CHANGED") return PROPERTY_USAGE_RESTART_IF_CHANGED;
-		else if (enumFlagStr == "PROPERTY_USAGE_SCRIPT_VARIABLE") return PROPERTY_USAGE_SCRIPT_VARIABLE;
-		else if (enumFlagStr == "PROPERTY_USAGE_STORE_IF_NULL") return PROPERTY_USAGE_STORE_IF_NULL;
-		else if (enumFlagStr == "PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED") return PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED;
-		else if (enumFlagStr == "PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE") return PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE;
-		else if (enumFlagStr == "PROPERTY_USAGE_CLASS_IS_ENUM") return PROPERTY_USAGE_CLASS_IS_ENUM;
-		else if (enumFlagStr == "PROPERTY_USAGE_NIL_IS_VARIANT") return PROPERTY_USAGE_NIL_IS_VARIANT;
-		else if (enumFlagStr == "PROPERTY_USAGE_ARRAY") return PROPERTY_USAGE_ARRAY;
-		else if (enumFlagStr == "PROPERTY_USAGE_ALWAYS_DUPLICATE") return PROPERTY_USAGE_ALWAYS_DUPLICATE;
-		else if (enumFlagStr == "PROPERTY_USAGE_NEVER_DUPLICATE") return PROPERTY_USAGE_NEVER_DUPLICATE;
-		else if (enumFlagStr == "PROPERTY_USAGE_HIGH_END_GFX") return PROPERTY_USAGE_HIGH_END_GFX;
-		else if (enumFlagStr == "PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT") return PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT;
-		else if (enumFlagStr == "PROPERTY_USAGE_RESOURCE_NOT_PERSISTENT") return PROPERTY_USAGE_RESOURCE_NOT_PERSISTENT;
-		else if (enumFlagStr == "PROPERTY_USAGE_KEYING_INCREMENTS") return PROPERTY_USAGE_KEYING_INCREMENTS;
-		else if (enumFlagStr == "PROPERTY_USAGE_DEFERRED_SET_RESOURCE") return PROPERTY_USAGE_DEFERRED_SET_RESOURCE;
-		else if (enumFlagStr == "PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT") return PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT;
-		else if (enumFlagStr == "PROPERTY_USAGE_EDITOR_BASIC_SETTING") return PROPERTY_USAGE_EDITOR_BASIC_SETTING;
-		else if (enumFlagStr == "PROPERTY_USAGE_READ_ONLY") return PROPERTY_USAGE_READ_ONLY;
-		else if (enumFlagStr == "PROPERTY_USAGE_SECRET") return PROPERTY_USAGE_SECRET;
-		else if (enumFlagStr == "PROPERTY_USAGE_DEFAULT") return PROPERTY_USAGE_DEFAULT;
-		else if (enumFlagStr == "PROPERTY_USAGE_NO_EDITOR") return PROPERTY_USAGE_NO_EDITOR;
+		if (FlagMatch("PROPERTY_USAGE_NONE")) return PROPERTY_USAGE_NONE;
+		else if (FlagMatch("PROPERTY_USAGE_STORAGE")) return PROPERTY_USAGE_STORAGE;
+		else if (FlagMatch("PROPERTY_USAGE_EDITOR")) return PROPERTY_USAGE_EDITOR;
+		else if (FlagMatch("PROPERTY_USAGE_INTERNAL")) return PROPERTY_USAGE_INTERNAL;
+		else if (FlagMatch("PROPERTY_USAGE_CHECKABLE")) return PROPERTY_USAGE_CHECKABLE;
+		else if (FlagMatch("PROPERTY_USAGE_CHECKED")) return PROPERTY_USAGE_CHECKED;
+		else if (FlagMatch("PROPERTY_USAGE_GROUP")) return PROPERTY_USAGE_GROUP;
+		else if (FlagMatch("PROPERTY_USAGE_CATEGORY")) return PROPERTY_USAGE_CATEGORY;
+		else if (FlagMatch("PROPERTY_USAGE_SUBGROUP")) return PROPERTY_USAGE_SUBGROUP;
+		else if (FlagMatch("PROPERTY_USAGE_CLASS_IS_BITFIELD")) return PROPERTY_USAGE_CLASS_IS_BITFIELD;
+		else if (FlagMatch("PROPERTY_USAGE_NO_INSTANCE_STATE")) return PROPERTY_USAGE_NO_INSTANCE_STATE;
+		else if (FlagMatch("PROPERTY_USAGE_RESTART_IF_CHANGED")) return PROPERTY_USAGE_RESTART_IF_CHANGED;
+		else if (FlagMatch("PROPERTY_USAGE_SCRIPT_VARIABLE")) return PROPERTY_USAGE_SCRIPT_VARIABLE;
+		else if (FlagMatch("PROPERTY_USAGE_STORE_IF_NULL")) return PROPERTY_USAGE_STORE_IF_NULL;
+		else if (FlagMatch("PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED")) return PROPERTY_USAGE_UPDATE_ALL_IF_MODIFIED;
+		else if (FlagMatch("PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE")) return PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE;
+		else if (FlagMatch("PROPERTY_USAGE_CLASS_IS_ENUM")) return PROPERTY_USAGE_CLASS_IS_ENUM;
+		else if (FlagMatch("PROPERTY_USAGE_NIL_IS_VARIANT")) return PROPERTY_USAGE_NIL_IS_VARIANT;
+		else if (FlagMatch("PROPERTY_USAGE_ARRAY")) return PROPERTY_USAGE_ARRAY;
+		else if (FlagMatch("PROPERTY_USAGE_ALWAYS_DUPLICATE")) return PROPERTY_USAGE_ALWAYS_DUPLICATE;
+		else if (FlagMatch("PROPERTY_USAGE_NEVER_DUPLICATE")) return PROPERTY_USAGE_NEVER_DUPLICATE;
+		else if (FlagMatch("PROPERTY_USAGE_HIGH_END_GFX")) return PROPERTY_USAGE_HIGH_END_GFX;
+		else if (FlagMatch("PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT")) return PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT;
+		else if (FlagMatch("PROPERTY_USAGE_RESOURCE_NOT_PERSISTENT")) return PROPERTY_USAGE_RESOURCE_NOT_PERSISTENT;
+		else if (FlagMatch("PROPERTY_USAGE_KEYING_INCREMENTS")) return PROPERTY_USAGE_KEYING_INCREMENTS;
+		else if (FlagMatch("PROPERTY_USAGE_DEFERRED_SET_RESOURCE")) return PROPERTY_USAGE_DEFERRED_SET_RESOURCE;
+		else if (FlagMatch("PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT")) return PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT;
+		else if (FlagMatch("PROPERTY_USAGE_EDITOR_BASIC_SETTING")) return PROPERTY_USAGE_EDITOR_BASIC_SETTING;
+		else if (FlagMatch("PROPERTY_USAGE_READ_ONLY")) return PROPERTY_USAGE_READ_ONLY;
+		else if (FlagMatch("PROPERTY_USAGE_SECRET")) return PROPERTY_USAGE_SECRET;
+		else if (FlagMatch("PROPERTY_USAGE_DEFAULT")) return PROPERTY_USAGE_DEFAULT;
+		else if (FlagMatch("PROPERTY_USAGE_NO_EDITOR")) return PROPERTY_USAGE_NO_EDITOR;
 
 		// Invalid/Unsupported
 		return 0;
@@ -8813,7 +8866,7 @@ namespace jenova
 			return std::regex_search(line, commentRegex);
 		};
 
-		// Function to parse arguments with key-value pairs
+		// Function to Parse Arguments with Key-Value Pairs
 		auto parseArguments = [](const std::string& argsString)
 		{
 			std::vector<std::string> args;
@@ -8828,7 +8881,7 @@ namespace jenova
 				else if (c == ')' && !inQuotes && parenDepth > 0) --parenDepth;
 				if (c == ',' && parenDepth == 0 && !inQuotes)
 				{
-					// Trim whitespace around currentArg
+					// Trim Whitespace Around Arguments
 					currentArg.erase(currentArg.find_last_not_of(" \t\n\r\f\v") + 1);
 					currentArg.erase(0, currentArg.find_first_not_of(" \t\n\r\f\v"));
 					args.push_back(currentArg);
@@ -8848,7 +8901,7 @@ namespace jenova
 			return args;
 		};
 
-		// Helper to parse key-value pairs
+		// Helper to Parse Key-Value Pairs
 		auto parseKeyValuePairs = [](const std::vector<std::string>& args, size_t startIndex)
 		{
 			std::unordered_map<std::string, std::string> keyValuePairs;
@@ -8861,18 +8914,14 @@ namespace jenova
 				{
 					std::string key = match[1].str();
 					std::string value = match[2].str();
-					// Remove surrounding quotes if present
-					if (!value.empty() && value.front() == '"' && value.back() == '"')
-					{
-						value = value.substr(1, value.size() - 2);
-					}
+					if (!value.empty() && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
 					keyValuePairs[key] = value;
 				}
 			}
 			return keyValuePairs;
 		};
 
-		// Split scriptSource into lines for processing
+		// Split Script Source into Lines for Processing
 		std::istringstream scriptStream(scriptSource);
 		std::string line, paramHandlers;
 		int lineNumber = 0;
@@ -8881,15 +8930,15 @@ namespace jenova
 		// Flags
 		bool isHeaderCommentAdded = false;
 
-		// Extract properties and replace lines
+		// Extract Properties & Replace Lines
 		while (std::getline(scriptStream, line))
 		{
 			lineNumber++;
 
-			// Skip if line is commented
+			// Skip if Line is Commented
 			if (isCommented(line)) continue;
 
-			// Detect JENOVA_PROPERTY line
+			// Detect Jenova Property Line
 			std::regex propertyRegex(R"(JENOVA_PROPERTY\s*\((.*)\))");
 			std::smatch match;
 			if (std::regex_search(line, match, propertyRegex))
@@ -8906,7 +8955,7 @@ namespace jenova
 					propertyMetadata["PropertyType"] = args[0];
 					propertyMetadata["PropertyDefault"] = args[2];
 
-					// Parse additional key-value parameters and add them to the metadata
+					// Parse Additional Key-Value Parameters & Add to Metadata
 					auto extraParams = parseKeyValuePairs(args, 3);
 					for (const auto& kv : extraParams)
 					{
@@ -8956,7 +9005,7 @@ namespace jenova
 				if (lineStartPos != std::string::npos)
 				{
 					scriptSource.replace(lineStartPos, line.length(), jenova::Format("%s* __prop_%s = nullptr;", args[0].c_str(), args[1].c_str()));
-					paramHandlers += jenova::Format("#define %s (*__prop_%s)\n", args[1].c_str(), args[1].c_str());
+					if (!isCarbon) paramHandlers += jenova::Format("#define %s (*__prop_%s)\n", args[1].c_str(), args[1].c_str());
 				}
 			}
 		}
@@ -9062,13 +9111,13 @@ namespace jenova
 				scriptProp.propertyInfo.name = bool(scriptProperty.contains("PropertyGroup")) ?
 					StringName(String(scriptProperty["PropertyGroup"].get<std::string>().c_str()) + "/" + String(scriptProperty["PropertyName"].get<std::string>().c_str())) :
 					StringName(String(scriptProperty["PropertyName"].get<std::string>().c_str()));
-				if (scriptProperty.contains("PropertyHint")) scriptProp.propertyInfo.hint = jenova::GetPropertyEnumFlagFromString(scriptProperty["PropertyHint"].get<std::string>());
+				if (scriptProperty.contains("PropertyHint")) scriptProp.propertyInfo.hint = jenova::SolvePropertyEnumFlagFromString(scriptProperty["PropertyHint"].get<std::string>());
 				else scriptProp.propertyInfo.hint = godot::PropertyHint::PROPERTY_HINT_NONE;
 				if (scriptProperty.contains("PropertyHintString")) scriptProp.propertyInfo.hint_string = String(scriptProperty["PropertyHintString"].get<std::string>().c_str());
 				else scriptProp.propertyInfo.hint_string = String("");
 				if (scriptProperty.contains("PropertyClassName")) scriptProp.propertyInfo.class_name = StringName(scriptProperty["PropertyClassName"].get<std::string>().c_str());
 				else scriptProp.propertyInfo.class_name = StringName("Variant");
-				if (scriptProperty.contains("PropertyUsage")) scriptProp.propertyInfo.usage = jenova::GetPropertyEnumFlagFromString(scriptProperty["PropertyUsage"].get<std::string>());
+				if (scriptProperty.contains("PropertyUsage")) scriptProp.propertyInfo.usage = jenova::SolvePropertyEnumFlagFromString(scriptProperty["PropertyUsage"].get<std::string>());
 				else scriptProp.propertyInfo.usage = PropertyUsageFlags::PROPERTY_USAGE_DEFAULT | PropertyUsageFlags::PROPERTY_USAGE_SCRIPT_VARIABLE;
 				propertyContainer.scriptProperties.push_back(scriptProp);
 			}
@@ -10450,6 +10499,14 @@ namespace jenova
 	String SignatureText(const String& sig)
 	{
 		return GradientText(sig, Color::html("#35f086"), Color::html("#35f0c7"));
+	}
+	std::string ProcessCompilerError(const String& error)
+	{
+		std::string formattedError = AS_STD_STRING(error);
+		jenova::ReplaceAllMatchesWithString(formattedError, " fatal error C1189: #error:  ", "> ");
+		jenova::ReplaceAllMatchesWithString(formattedError, "\r\n", "\n");
+		jenova::ReplaceAllMatchesWithString(formattedError, "\r", "");
+		return formattedError;
 	}
 	#pragma endregion
 	

@@ -317,6 +317,9 @@ using namespace godot;
 #define RESOURCE_BUFFER(key)				JenovaResourceManager::get_singleton()->GetResourceRawBuffer(#key)
 #define CODE_TEMPLATE(id)					jenova::GetStringFromMemoryBuffer(RESOURCE_BUFFER(id))
 #define VALIDATE_FUNCTION(func)				if (!func) { jenova::Output("System Failure : %d", __LINE__); jenova::ExitWithCode(__LINE__); }
+#define TP_CHECKPOINT_SET(name)				JenovaTinyProfiler::CreateCheckpoint(name)
+#define TP_CHECKPOINT_GET(name)				JenovaTinyProfiler::GetCheckpointTimeAndDispose(name)
+#define TP_CHECKPOINT_UNSET(name)			JenovaTinyProfiler::DeleteCheckpoint(name)
 #define MAKE_IMAGE_FROM_BUFFER				jenova::CreateImageTextureFromByteArray
 #define MAKE_IMAGE_FROM_BUFFER_EX			jenova::CreateImageTextureFromByteArrayEx
 #define CREATE_SVG_MENU_ICON(buffer)		jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(buffer), jenova::ImageFormat::SVG)
@@ -1112,6 +1115,7 @@ namespace jenova
 	std::string ResolveVariantTypeAsString(const Variant* variantValue);
 	std::string ResolveReturnTypeForJIT(const std::string& returnType);
 	Variant* MakeVariantFromReturnType(Variant* variantPtr, const char* returnType);
+	uint32_t SolvePropertyEnumFlagFromString(const std::string& enumFlagStr);
 	uint32_t GetPropertyEnumFlagFromString(const std::string enumFlagStr);
 	String PreprocessScript(Ref<Resource> scriptResource, const Dictionary& preprocessorSettings, CompilerModel compilerModel);
 	jenova::SerializedData ProcessAndExtractPropertiesFromScript(OutParam std::string& scriptSource, const std::string& scriptUID);
@@ -1165,6 +1169,7 @@ namespace jenova
 	void SwitchToJenovaTerminalTab();
 	String GradientText(const String& text, const Color& from, const Color& to);
 	String SignatureText(const String& sig);
+	std::string ProcessCompilerError(const String& error);
 	#pragma endregion
 
 	// Crash Handlers

@@ -34,28 +34,6 @@ This repository contains the full source code of **Jenova Runtime**, a full-feat
 - If you have any questions you can create a new thread at [Discussions](https://github.com/Jenova-Framework/J.E.N.O.V.A/discussions).
 - More details on the build process can be found at [Documentation](https://jenova-framework.github.io/docs/pages/Advanced/Build-Guide/).
 
-## Dependencies
-
-Jenova Core has following dependencies :
-
-- [AsmJIT](https://github.com/asmjit/asmjit)
-- [LibArchive](https://github.com/libarchive/libarchive)
-- [LibLZMA](https://github.com/ShiftMediaProject/liblzma)
-- [LibCurl](https://github.com/curl/curl)
-- [LibFastZLib](https://github.com/gildor2/fast_zlib)
-- [LibTinyCC](http://download.savannah.gnu.org/releases/tinycc/)
-- [LibPThread](https://github.com/GerHobbelt/pthread-win32)
-- [JSON++](https://github.com/nlohmann/json)
-- [FileWatch](https://github.com/ThomasMonkman/filewatch)
-- [ArgParse++](https://github.com/p-ranav/argparse)
-- [Base64++](https://github.com/zaphoyd/websocketpp/blob/master/websocketpp/base64/base64.hpp)
-
-> [!IMPORTANT]
-> - Edit **base64.hpp** namespace to `base64`
-> - Only header file `libtcc.h` is required from TinyCC beside static library
-> - In **FileWatch.hpp** change `_callback(file.first, file.second);` to `_callback(_path + "/" + file.first, file.second);`
-> - **By using Jenova Builder, All the dependencies are downloaded, manipulated and compiled automatically.**
-
 ## Build Systems
 
 Jenova Runtime can be built on Windows x64 and Linux x64 using **Jenova Builder**.
@@ -72,6 +50,8 @@ Jenova Runtime can be built on Windows x64 and Linux x64 using **Jenova Builder*
 **Linux x64:** Compatible with Clang++ (18+) and G++ (13+).
 
 For detailed build instructions and more information, see the [Build Guide](https://jenova-framework.github.io/docs/pages/Advanced/Build-Guide).
+
+> **By using Jenova Builder, All the dependencies are downloaded, manipulated and compiled automatically.**
 
 ## Godot Compatibility
 As of version 0.4.0.0 LTS, **Godot 4.7 Stable** is the minimum required version due to breaking changes in [godot-cpp](https://github.com/godotengine/godot-cpp). While it is still possible to build 0.4.0.0+ for Godot 4.2–4.6 with minor modifications, the official builder is now fully migrated and fine-tuned for Godot 4.7 only.
