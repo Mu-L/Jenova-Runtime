@@ -50,6 +50,7 @@
 
 // Jenova Configuration Macros
 #define JENOVA_TOOL_SCRIPT
+#define JENOVA_CARBON_SCRIPT
 
 // Jenova Profiler Macros
 #define JENOVA_SCRIPT_RECORD(n,t)	sentinel::CommitScriptRecord(__FILE__, n, t)
@@ -72,7 +73,7 @@
 
 // Jenova Signal Macro
 #ifndef JENOVA_SIGNAL
-	#define JENOVA_SIGNAL(sName, ...) void __jnvsignal__##sName(__VA_ARGS__) {};
+	#define JENOVA_SIGNAL(sName, ...) void __jnvsignal__##sName(__VA_ARGS__) {}
 #endif
 
 // Jenova Class Name Macro
@@ -96,6 +97,7 @@
 	#include <string>
 	#include <thread>
 	#include <functional>
+	#include <unordered_map>
 #endif
 
 // GodotSDK Imports
@@ -824,3 +826,20 @@ namespace jenova::sdk
 	bool UnregisterBootEvent(jenova::sdk::FunctionPtr funcionPtr);
 	bool UnregisterShutdownEvent(jenova::sdk::FunctionPtr funcionPtr);
 }
+
+// Jenova Carbon Classes
+template<typename T> class CarbonScript
+{
+public:
+	T* _this;
+
+public:
+	CarbonScript(T* obj = nullptr) : _this(obj) {}
+	T* GetObject() { return _this; }
+	const T* GetObject() const { return _this; }
+
+public:
+	virtual godot::String _get_class_name() { return ""; }
+	virtual void _register_methods() { }
+	virtual void _register_properties() { }
+};

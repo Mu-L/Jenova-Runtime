@@ -8419,6 +8419,11 @@ namespace jenova
 		// Other Types
 		return "Variant";
 	}
+	Variant ParseVariantValueFromString(const String& valueString)
+	{
+		/* Godot String to Variant is Very Weak, I Need to Implement A Better One Later */
+		return UtilityFunctions::str_to_var(valueString);
+	}
 	Variant* MakeVariantFromReturnType(Variant* variantObject, const char* returnType)
 	{
 		// Validate Return Type
@@ -8636,6 +8641,10 @@ namespace jenova
 		// Default case (unsupported type)
 		return new Variant(*variantObject);
 	}
+	String SolveScriptPropertyName(const String& propertyName)
+	{
+		return propertyName.get_file();
+	}
 	uint32_t SolvePropertyEnumFlagFromString(const std::string& enumFlagStr)
 	{
 		if (enumFlagStr.find('|') != std::string::npos)
@@ -8773,8 +8782,11 @@ namespace jenova
 		// Invalid/Unsupported
 		return 0;
 	}
-	String PreprocessScript(Ref<Resource> scriptResource, const Dictionary& preprocessorSettings, CompilerModel compilerModel)
+	String PreprocessScript(Ref<Resource> scriptResource, Dictionary& preprocessorSettings, void* jenovaCompilerPtr)
 	{
+		// Get Compiler Instance
+		auto* jenovaCompiler = (IJenovaCompiler*)jenovaCompilerPtr;
+
 		// Get Original Source Code
 		Ref<CPPScript> cppScript = Object::cast_to<CPPScript>(scriptResource.ptr());
 		String scriptSourceCode = cppScript->get_source_code();
@@ -8782,10 +8794,6 @@ namespace jenova
 		// Reset Line Number
 		String referenceSourceFile = ProjectSettings::get_singleton()->globalize_path(cppScript->get_path());
 		scriptSourceCode = scriptSourceCode.insert(0, String(jenova::Format("#line 1 \"%s\"\n", AS_C_STRING(referenceSourceFile)).c_str()));
-
-		// Process And Extract Properties
-		jenova::SerializedData propertiesMetadata = jenova::ProcessAndExtractPropertiesFromScript(scriptSourceCode, cppScript->GetScriptIdentity());
-		if (!propertiesMetadata.empty() && propertiesMetadata != "null") jenova::WriteStdStringToFile(AS_STD_STRING(String(preprocessorSettings["PropertyMetadata"])), propertiesMetadata);
 
 		// Preprocessor Definitions [Header]
 		String preprocessorDefinitions = "// Jenova Preprocessor Definitions\n";
@@ -8797,34 +8805,34 @@ namespace jenova
 
 		// Preprocessor Definitions [Compiler]
 		#ifdef TARGET_PLATFORM_WINDOWS
-		if (compilerModel == CompilerModel::MicrosoftCompiler)
+		if (jenovaCompiler->GetCompilerModel() == CompilerModel::MicrosoftCompiler)
 		{
 			preprocessorDefinitions += "#define JENOVA_COMPILER \"Microsoft Visual C++ Compiler\"\n";
 			preprocessorDefinitions += "#define MSVC_COMPILER\n";
 		}
-		else if (compilerModel == CompilerModel::ClangLLVMCompiler)
+		else if (jenovaCompiler->GetCompilerModel() == CompilerModel::ClangLLVMCompiler)
 		{
 			preprocessorDefinitions += "#define JENOVA_COMPILER \"Microsoft Visual C++ Compiler LLVM\"\n";
 			preprocessorDefinitions += "#define MSVC_LLVM_COMPILER\n";
 		}
-		else if (compilerModel == CompilerModel::MinGWCompiler)
+		else if (jenovaCompiler->GetCompilerModel() == CompilerModel::MinGWCompiler)
 		{
 			preprocessorDefinitions += "#define JENOVA_COMPILER \"MinGW GCC Compiler\"\n";
 			preprocessorDefinitions += "#define MINGW_CLANG_COMPILER\n";
 		}
-		else if (compilerModel == CompilerModel::MinGWClangCompiler)
+		else if (jenovaCompiler->GetCompilerModel() == CompilerModel::MinGWClangCompiler)
 		{
 			preprocessorDefinitions += "#define JENOVA_COMPILER \"MinGW Clang Compiler\"\n";
 			preprocessorDefinitions += "#define MINGW_GCC_COMPILER\n";
 		}
 		#endif
 		#ifdef TARGET_PLATFORM_LINUX
-		if (compilerModel == CompilerModel::GNUCompiler)
+		if (jenovaCompiler->GetCompilerModel() == CompilerModel::GNUCompiler)
 		{
 			preprocessorDefinitions += "#define JENOVA_COMPILER \"GNU Compiler Collection\"\n";
 			preprocessorDefinitions += "#define GCC_COMPILER\n";
 		}
-		else if (compilerModel == CompilerModel::ClangCompiler)
+		else if (jenovaCompiler->GetCompilerModel() == CompilerModel::ClangCompiler)
 		{
 			preprocessorDefinitions += "#define JENOVA_COMPILER \"LLVM Clang Compiler\"\n";
 			preprocessorDefinitions += "#define CLANG_COMPILER\n";
@@ -8841,8 +8849,7 @@ namespace jenova
 
 		// Replecements
 		scriptSourceCode = scriptSourceCode.replace(jenova::GlobalSettings::ScriptToolIdentifier, "#define TOOL_SCRIPT");
-		scriptSourceCode = scriptSourceCode.replace(jenova::GlobalSettings::ScriptBlockBeginIdentifier, "namespace JNV_" + cppScript->GetScriptIdentity() + " {");
-		scriptSourceCode = scriptSourceCode.replace(jenova::GlobalSettings::ScriptBlockEndIdentifier, "}; using namespace JNV_" + cppScript->GetScriptIdentity() + ";");
+		scriptSourceCode = scriptSourceCode.replace(jenova::GlobalSettings::ScriptCarbonIdentifier, "#define CARBON_SCRIPT");
 		scriptSourceCode = scriptSourceCode.replace(" OnReady", " _ready");
 		scriptSourceCode = scriptSourceCode.replace(" OnAwake", " _enter_tree");
 		scriptSourceCode = scriptSourceCode.replace(" OnDestroy", " _exit_tree");
@@ -8851,10 +8858,140 @@ namespace jenova
 		scriptSourceCode = scriptSourceCode.replace(" OnInput", " _input");
 		scriptSourceCode = scriptSourceCode.replace(" OnUserInterfaceInput", " _gui_input");
 
+		// Handle Carbon Scripts
+		#ifdef TARGET_PLATFORM_WINDOWS
+		if (cppScript->is_carbon())
+		{
+			// Build Error Injection
+			String buildError = "#error \"Carbon Script Failed to Preprocess, Check Logs for More Info.\"";
+
+			// Validate Compiler Support
+			if (jenovaCompiler->GetCompilerModel() != CompilerModel::MicrosoftCompiler)
+			{
+				jenova::Error("Jenova Preprocessor", "Carbon Support is Currently Limited to Microsoft Compilers.");
+				return buildError;
+			}
+
+			// Validate Carbon Toolkit
+			if (!Engine::get_singleton()->has_singleton("CarbonToolkit"))
+			{
+				jenova::Error("Jenova Preprocessor", "Carbon Toolkit Not Found, Install via Tools > Package Manager.");
+				return buildError;
+			};
+
+			// Get Carbon Toolkit
+			Object* carbon = Engine::get_singleton()->get_singleton("CarbonToolkit");
+			if (!carbon)
+			{
+				jenova::Error("Jenova Preprocessor", "Failed to Access Carbon Toolkit, Something Went Wrong.");
+				return buildError;
+			}
+
+			// Validate Interface
+			if (!bool(carbon->call("IsInitialized")))
+			{
+				String carbonError = carbon->call("GetLastError");
+				jenova::Error("Jenova Preprocessor", "Carbon Toolkit isn't Initialized, Reason : %s", AS_C_STRING(carbonError));
+				return buildError;
+			}
+
+			// Validate Script Block
+			if (scriptSourceCode.contains(jenova::GlobalSettings::ScriptBlockBeginIdentifier) || scriptSourceCode.contains(jenova::GlobalSettings::ScriptBlockEndIdentifier))
+			{
+				jenova::Error("Jenova Preprocessor", "Carbon Scripts Cannot Contain Script Blocks, Remove the Block and Try Again.");
+				return buildError;
+			}
+
+			// Solve Include Paths If Already Not Cache
+			if (!preprocessorSettings.has("CarbonIncludes"))
+			{
+				// Solve Compiler Settings
+				if (!bool(jenovaCompiler->ExecuteCommand("Solve-Compiler-Settings", Dictionary())))
+				{
+					jenova::Error("Jenova Preprocessor", "Failed to Solve Compiler Settings, Carbon Script Generation Failed.");
+					return buildError;
+				}
+
+				// Get Settings from Compiler
+				std::string extraIncludeDirectories = AS_STD_STRING(String(jenovaCompiler->GetCompilerOption("cpp_extra_include_directories")));
+				std::string forcedHeaders = jenova::GlobalSettings::ForceJenovaSDKHeader && jenova::GlobalStorage::UseBuiltinSDK ? "JenovaSDK.h;" : "";
+
+				// Solve GodotKit Path
+				String selectedGodotKitPath = jenova::GetInstalledGodotKitPathFromPackages(jenovaCompiler->GetCompilerOption("cpp_godotsdk_path"));
+				if (selectedGodotKitPath == "Missing-GodotKit-1.0.0")
+				{
+					jenova::Error("Jenova Preprocessor", "No GodotSDK Detected On Build System, Carbon Script Generation Failed.");
+					return buildError;
+				}
+				std::string solvedGodotKitPath = jenova::NormalizePath(jenova::SolveGodotKitPathForExporters(selectedGodotKitPath));
+
+				// Adjust Paths
+				if (!extraIncludeDirectories.empty() && extraIncludeDirectories.back() != ';') extraIncludeDirectories.push_back(';');
+
+				// Add Packages Include/Linkage (Addons, Libraries etc.)
+				for (const auto& addonConfig : jenova::GetInstalledAddons())
+				{
+					// Check For Addon Type
+					if (addonConfig.Type == "RuntimeModule")
+					{
+						if (!addonConfig.Header.empty())
+						{
+							if (addonConfig.Global) forcedHeaders += addonConfig.Path + "/" + addonConfig.Header + ";";
+							extraIncludeDirectories += addonConfig.Path + ";";
+						}
+					}
+				}
+
+				// Cache Include Paths (Per-Compile Session)
+				preprocessorSettings["CarbonIncludes"] = String(std::string("./;./Jenova/JenovaSDK;" + solvedGodotKitPath + ";" + extraIncludeDirectories).c_str());
+				preprocessorSettings["CarbonForcedHeaders"] = String(forcedHeaders.c_str());
+			}
+
+			// Configure Carbon Toolkit
+			carbon->call("SetSetting", "include_paths", String(preprocessorSettings["CarbonIncludes"]));
+			carbon->call("SetSetting", "forced_includes", String(preprocessorSettings["CarbonForcedHeaders"]));
+			carbon->call("SetSetting", "standard", "c++20"); // Todo : Get From Settings
+
+			// Perform Analyze
+			jenova::Output("Analyzing Carbon Script using C++ Analyzer ([color=#70a9d4]%s[/color])...", AS_C_STRING(cppScript->get_path()));
+			TP_CHECKPOINT_SET("CarbonAnalzye");
+			Dictionary analyzerResult = carbon->call("ProcessScript", scriptSourceCode);
+			if (analyzerResult.is_empty())
+			{
+				String carbonError = carbon->call("GetLastError");
+				jenova::Error("Jenova Preprocessor", "Carbon Failed to Parse or Analyze Script, Reason : %s", AS_C_STRING(carbonError));
+				return buildError;
+			}
+			jenova::Output("[color=#9eb3f0]Carbon Script ([color=#70a9d4]%s/%s[/color]) Parsed & Analyzed Successfully. Analzyer Time : [color=#c8e38a]%f ms[/color][/color]", 
+				AS_C_STRING(cppScript->get_path().get_file()), AS_C_STRING(cppScript->GetScriptIdentity()), TP_CHECKPOINT_GET("CarbonAnalzye"));
+			
+			// Perform Code Generation
+			jenova::Output("[color=#9eb3f0]CGenerating Carbon Script Code ([color=#70a9d4]%s[/color]) [[color=#91b553]%s[/color]]...[/color]",
+				AS_C_STRING(cppScript->get_path()), AS_C_STRING(cppScript->GetScriptIdentity()));
+			analyzerResult["ScriptBlockBeginIdentifier"] = String(jenova::GlobalSettings::ScriptBlockBeginIdentifier);
+			analyzerResult["ScriptBlockEndIdentifier"] = String(jenova::GlobalSettings::ScriptBlockEndIdentifier);
+			scriptSourceCode = carbon->call("GenerateBindings", scriptSourceCode, analyzerResult);
+			if (scriptSourceCode.is_empty())
+			{
+				String carbonError = carbon->call("GetLastError");
+				jenova::Error("Jenova Preprocessor", "%s", AS_C_STRING(carbonError));
+				return buildError;
+			}
+		}
+		#endif
+
+		// Process And Extract Properties
+		jenova::SerializedData propertiesMetadata = jenova::ProcessAndExtractPropertiesFromScript(scriptSourceCode, cppScript->GetScriptIdentity(), cppScript->is_carbon());
+		if (!propertiesMetadata.empty() && propertiesMetadata != "null") jenova::WriteStdStringToFile(AS_STD_STRING(String(preprocessorSettings["PropertyMetadata"])), propertiesMetadata);
+
+		// Script Block Injection
+		scriptSourceCode = scriptSourceCode.replace(jenova::GlobalSettings::ScriptBlockBeginIdentifier, "namespace JNV_" + cppScript->GetScriptIdentity() + " {");
+		scriptSourceCode = scriptSourceCode.replace(jenova::GlobalSettings::ScriptBlockEndIdentifier, "}; using namespace JNV_" + cppScript->GetScriptIdentity() + ";");
+
 		// Return Preprocessed Source
 		return scriptSourceCode;
 	}
-	jenova::SerializedData ProcessAndExtractPropertiesFromScript(std::string& scriptSource, const std::string& scriptUID)
+	jenova::SerializedData ProcessAndExtractPropertiesFromScript(std::string& scriptSource, const std::string& scriptUID, bool isCarbon)
 	{
 		// Property Metadata Serializer
 		jenova::json_t propertiesMetadata;
@@ -9020,10 +9157,10 @@ namespace jenova
 		// Return Metadata
 		return propertiesMetadata.dump();
 	}
-	jenova::SerializedData ProcessAndExtractPropertiesFromScript(String& scriptSource, const String& scriptUID)
+	jenova::SerializedData ProcessAndExtractPropertiesFromScript(String& scriptSource, const String& scriptUID, bool isCarbon)
 	{
 		std::string sourceStdStr = AS_STD_STRING(scriptSource);
-		jenova::SerializedData propertiesMetadata = ProcessAndExtractPropertiesFromScript(sourceStdStr, AS_STD_STRING(scriptUID));
+		jenova::SerializedData propertiesMetadata = ProcessAndExtractPropertiesFromScript(sourceStdStr, AS_STD_STRING(scriptUID), isCarbon);
 		if (scriptSource.parse_utf8(scriptSource.utf8().get_data(), scriptSource.length()) != OK) scriptSource = String::utf8(sourceStdStr.c_str());
 		else scriptSource = AS_GD_STRING(sourceStdStr);
 		return propertiesMetadata;
@@ -9106,7 +9243,7 @@ namespace jenova
 				scriptProp.ownerScriptUID = AS_GD_STRING(scriptUID);
 				scriptProp.propertyName = String(scriptProperty["PropertyName"].get<std::string>().c_str());
 				scriptProp.propertyInfo.type = jenova::GetVariantTypeFromStdString(scriptProperty["PropertyType"].get<std::string>());
-				scriptProp.defaultValue = UtilityFunctions::str_to_var(String(scriptProperty["PropertyDefault"].get<std::string>().c_str()));
+				scriptProp.defaultValue = jenova::ParseVariantValueFromString(String(scriptProperty["PropertyDefault"].get<std::string>().c_str()));
 				if (scriptProp.defaultValue.get_type() == Variant::NIL) scriptProp.defaultValue = jenova::CreateDefaultVariantFromType(scriptProp.propertyInfo.type);
 				scriptProp.propertyInfo.name = bool(scriptProperty.contains("PropertyGroup")) ?
 					StringName(String(scriptProperty["PropertyGroup"].get<std::string>().c_str()) + "/" + String(scriptProperty["PropertyName"].get<std::string>().c_str())) :

@@ -867,6 +867,7 @@ namespace jenova
 		constexpr char* JenovaCacheDirectory					= "/.jenova/";
 		constexpr char* JenovaCacheDirectoryLegacy				= "/Jenova_Cache/";
 		constexpr char* ScriptToolIdentifier					= "JENOVA_TOOL_SCRIPT";
+		constexpr char* ScriptCarbonIdentifier					= "JENOVA_CARBON_SCRIPT";
 		constexpr char* ScriptRecordIdentifier					= "JENOVA_SCRIPT_RECORD";
 		constexpr char* ScriptBlockBeginIdentifier				= "JENOVA_SCRIPT_BEGIN";
 		constexpr char* ScriptBlockEndIdentifier				= "JENOVA_SCRIPT_END";
@@ -1114,12 +1115,14 @@ namespace jenova
 	std::string ResolveVariantValueAsString(const Variant* variantValue, const std::string& variantType, jenova::PointerList& ptrList);
 	std::string ResolveVariantTypeAsString(const Variant* variantValue);
 	std::string ResolveReturnTypeForJIT(const std::string& returnType);
+	Variant ParseVariantValueFromString(const String& valueString);
 	Variant* MakeVariantFromReturnType(Variant* variantPtr, const char* returnType);
+	String SolveScriptPropertyName(const String& propertyName);
 	uint32_t SolvePropertyEnumFlagFromString(const std::string& enumFlagStr);
 	uint32_t GetPropertyEnumFlagFromString(const std::string enumFlagStr);
-	String PreprocessScript(Ref<Resource> scriptResource, const Dictionary& preprocessorSettings, CompilerModel compilerModel);
-	jenova::SerializedData ProcessAndExtractPropertiesFromScript(OutParam std::string& scriptSource, const std::string& scriptUID);
-	jenova::SerializedData ProcessAndExtractPropertiesFromScript(OutParam String& scriptSource, const String& scriptUID);
+	String PreprocessScript(Ref<Resource> scriptResource, Dictionary& preprocessorSettings, void* jenovaCompilerPtr);
+	jenova::SerializedData ProcessAndExtractPropertiesFromScript(OutParam std::string& scriptSource, const std::string& scriptUID, bool isCarbon = false);
+	jenova::SerializedData ProcessAndExtractPropertiesFromScript(OutParam String& scriptSource, const String& scriptUID, bool isCarbon = false);
 	Variant::Type GetVariantTypeFromStdString(const std::string& typeName);
 	jenova::ScriptPropertyContainer CreatePropertyContainerFromMetadata(const jenova::SerializedData& propertyMetadata, const std::string& scriptUID);
 	void CleanVariantTypeName(std::string& typeName);

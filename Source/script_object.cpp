@@ -91,6 +91,9 @@ void CPPScript::_set_source_code(const String& p_code)
 	// Detect Tool Macro
 	String cleanedSource = jenova::RemoveCommentsFromSource(p_code);
 	this->IsTool = jenova::ContainsExactString(cleanedSource, jenova::GlobalSettings::ScriptToolIdentifier);
+
+	// Detect Carbon Macro
+	this->IsCarbon = jenova::ContainsExactString(cleanedSource, jenova::GlobalSettings::ScriptCarbonIdentifier);
 }
 Error CPPScript::_reload(bool p_keep_state)
 {
@@ -204,7 +207,7 @@ bool CPPScript::_has_property_default_value(const StringName& p_property) const
 	auto propertyContainer = JenovaInterpreter::GetPropertyContainer(AS_STD_STRING(GetScriptIdentity()));
 	for (const auto& property : propertyContainer.scriptProperties)
 	{
-		if (property.propertyName == p_property && property.defaultValue.get_type() != Variant::NIL) return true;
+		if (property.propertyName == jenova::SolveScriptPropertyName(p_property) && property.defaultValue.get_type() != Variant::NIL) return true;
 	}
 	return false;
 }
@@ -214,7 +217,7 @@ Variant CPPScript::_get_property_default_value(const StringName& p_property) con
 	auto propertyContainer = JenovaInterpreter::GetPropertyContainer(AS_STD_STRING(GetScriptIdentity()));
 	for (const auto& property : propertyContainer.scriptProperties)
 	{
-		if (property.propertyName == p_property && property.defaultValue.get_type() != Variant::NIL)  return property.defaultValue;
+		if (property.propertyName == jenova::SolveScriptPropertyName(p_property) && property.defaultValue.get_type() != Variant::NIL) return property.defaultValue;
 	}
 	return propertyList;
 }
@@ -228,7 +231,17 @@ TypedArray<Dictionary> CPPScript::_get_script_method_list() const
 	auto functionContainer = JenovaInterpreter::GetFunctionContainer(AS_STD_STRING(GetScriptIdentity()));
 	for (const auto& function : functionContainer.scriptFunctions)
 	{
+		// Exclude Signals
 		if (function.functionName.contains("__jnvsignal__")) continue;
+
+		// Exclude Carbon Bridge
+		if (is_carbon())
+		{
+			if (function.functionName.contains("carbon_property_")) continue;
+			if (function.functionName.contains("on_carbon_instance_")) continue;
+		}
+
+		// Final Function List
 		methodsList.push_back(Dictionary(function.methodInfo));
 	}
 	return methodsList;

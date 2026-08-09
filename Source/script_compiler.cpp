@@ -132,9 +132,9 @@ namespace jenova
             internalDefaultSettings.clear();
             return true;
         }
-        String PreprocessScript(Ref<CPPScript> cppScript, const Dictionary& preprocessorSettings)
+        String PreprocessScript(Ref<CPPScript> cppScript, Dictionary& preprocessorSettings)
         {
-            return jenova::PreprocessScript(cppScript, preprocessorSettings, this->GetCompilerModel());
+            return jenova::PreprocessScript(cppScript, preprocessorSettings, this);
         }
         CompileResult CompileScript(const String sourceCode)
         {
@@ -1042,9 +1042,9 @@ namespace jenova
             internalDefaultSettings.clear();
             return true;
         }
-        String PreprocessScript(Ref<CPPScript> cppScript, const Dictionary& preprocessorSettings)
+        String PreprocessScript(Ref<CPPScript> cppScript, Dictionary& preprocessorSettings)
         {
-            return jenova::PreprocessScript(cppScript, preprocessorSettings, this->GetCompilerModel());
+            return jenova::PreprocessScript(cppScript, preprocessorSettings, this);
         }
         CompileResult CompileScript(const String sourceCode)
         {
@@ -1794,9 +1794,9 @@ namespace jenova
             internalDefaultSettings.clear();
             return true;
         }
-        String PreprocessScript(Ref<CPPScript> cppScript, const Dictionary& preprocessorSettings)
+        String PreprocessScript(Ref<CPPScript> cppScript, Dictionary& preprocessorSettings)
         {
-            return jenova::PreprocessScript(cppScript, preprocessorSettings, this->GetCompilerModel());
+            return jenova::PreprocessScript(cppScript, preprocessorSettings, this);
         }
         CompileResult CompileScript(const String sourceCode)
         {
@@ -2508,9 +2508,9 @@ namespace jenova
             // All Good
             return true;
         }
-        String PreprocessScript(Ref<CPPScript> cppScript, const Dictionary& preprocessorSettings) override
+        String PreprocessScript(Ref<CPPScript> cppScript, Dictionary& preprocessorSettings) override
         {
-            return jenova::PreprocessScript(cppScript, preprocessorSettings, this->GetCompilerModel());
+            return jenova::PreprocessScript(cppScript, preprocessorSettings, this);
         }
         CompilerModel GetCompilerModel() const override
         {

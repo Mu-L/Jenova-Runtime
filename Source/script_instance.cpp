@@ -39,11 +39,6 @@ static GDExtensionPropertyInfo CreatePropertyType(const Dictionary& p_src)
 	p_dst.usage = p_src["usage"];
 	return p_dst;
 }
-static void AddState(GDExtensionConstStringNamePtr p_name, GDExtensionConstVariantPtr p_value, void* p_userdata) 
-{
-	List<Pair<StringName, Variant>>* list = reinterpret_cast<List<Pair<StringName, Variant>>*>(p_userdata);
-	list->push_back({ *(const StringName*)p_name, *(const Variant*)p_value });
-}
 static GDExtensionMethodInfo CreateMethodInfo(const MethodInfo& methodInfo, CPPScriptInstance* instance)
 {
 	// Create Extension Parameters Info
@@ -126,6 +121,17 @@ bool CPPScriptInstance::set(const StringName& p_name, const Variant& p_value)
 		return true;
 	}
 
+	// Handle Carbon Properties
+	if (script->is_carbon())
+	{
+		StringName carbonSetter = "carbon_property_set_" + jenova::SolveScriptPropertyName(p_name);
+		if (this->owner->has_method(carbonSetter) && JenovaInterpreter::GetExecutionPermission())
+		{
+			this->owner->call(carbonSetter, p_value);
+			// We Don't Return, Because Carbon Properties Are Built On Top of Jenova Properties
+		}
+	}
+
 	// Set Interpreted Properties [Optimize This!]
 	if (instanceProperties.has(p_name))
 	{
@@ -165,6 +171,17 @@ bool CPPScriptInstance::get(const StringName& p_name, Variant& r_ret) const
 	{
 		r_ret = jenova::CreateSecuredBase64StringFromString(script->get_source_code());
 		return true;
+	}
+
+	// Handle Carbon Properties
+	if (script->is_carbon())
+	{
+		StringName carbonGetter = "carbon_property_get_" + jenova::SolveScriptPropertyName(p_name);
+		if (this->owner->has_method(carbonGetter) && JenovaInterpreter::GetExecutionPermission())
+		{
+			r_ret = this->owner->call(carbonGetter);
+			// We Don't Return, Because Carbon Properties Are Built On Top of Jenova Properties
+		}
 	}
 
 	// Get Interpreted Properties [Optimize This!]
@@ -241,11 +258,26 @@ Variant CPPScriptInstance::callp(const StringName& p_method, const Variant** p_a
 		return false;
 	}
 
+	// Perform Carbon Checks
+	if (script->is_carbon())
+	{
+		if (!JenovaInterpreter::ValidateBackendModel(jenova::InterpreterBackend::TinyCC))
+		{
+			jenova::Error("Jenova Interpreter", "Carbon Scripts are Supported Exclusively on Meteora Backend, Execution Skipped.");
+			r_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+			return Variant();
+		}
+	}
+
 	// Abort Call In Editor If Script is Not Tool
 	if (QUERY_ENGINE_MODE(Editor) && !script->is_tool())
 	{
-		r_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
-		return Variant();
+		// Carbon Bridge Functions Must Run In Editor
+		if (!p_method.begins_with("carbon_property_"))
+		{
+			r_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+			return Variant();
+		}
 	}
 
 	// Initial Update for Properties
@@ -462,10 +494,7 @@ Variant::Type CPPScriptInstance::get_property_type(const StringName& p_name, boo
 }
 void CPPScriptInstance::get_property_state(GDExtensionScriptInstancePropertyStateAdd p_add_func, void* p_userdata)
 {
-	// Remove
-	jenova::VerboseByID(__LINE__, "CPPScriptInstance::get_property_state");
-
-	p_add_func = AddState; // Needs Investigation
+	// No Implementation Needed Yet, Jenova Uses Property Storage Per-Instance to Recover from Hot-Reload
 }
 bool CPPScriptInstance::validate_property(GDExtensionPropertyInfo& p_property) const
 {
@@ -537,8 +566,7 @@ bool CPPScriptInstance::has_method(const StringName& p_name) const
 }
 int CPPScriptInstance::get_method_argument_count(const StringName& p_method, bool* r_is_valid) const
 {
-	// Remove
-	jenova::VerboseByID(__LINE__, "CPPScriptInstance::get_method_argument_count");
+	// Function is Optional, It Will Fall Back but Maybe Add Support Later?
 	*r_is_valid = false;
 	return 0;
 }
@@ -683,6 +711,9 @@ CPPScriptInstance::CPPScriptInstance(Object* p_owner, const Ref<CPPScript> p_scr
 	// Generate Script Identifier Hash
 	scriptInstanceIdentity = jenova::GenerateStandardUIDFromPath(p_script.ptr());
 
+	// Handle Carbon Script Instance Creation
+	if (script->is_carbon()) this->owner->call("on_carbon_instance_create");
+
 	// Register Script Instance to Manager
 	JenovaScriptManager::get_singleton()->add_script_instance(this);
 }
@@ -690,6 +721,9 @@ CPPScriptInstance::~CPPScriptInstance()
 {
 	// Remove
 	jenova::VerboseByID(__LINE__, "CPPScriptInstance::~CPPScriptInstance (%s)", AS_C_STRING(this->GetIdentity()));
+
+	// Handle Carbon Script Instance Destruction
+	if (script->is_carbon()) this->owner->call("on_carbon_instance_destroy");
 
 	// Unregister Script Instance to Manager
 	JenovaScriptManager::get_singleton()->remove_script_instance(this);

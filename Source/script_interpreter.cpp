@@ -857,6 +857,11 @@ void JenovaInterpreter::SetExecutionPermission(bool executionPermission)
     // Set Execution Permission
     allowExecution = executionPermission;
 }
+bool JenovaInterpreter::GetExecutionPermission()
+{
+    // Get Execution Permission
+    return allowExecution;
+}
 void JenovaInterpreter::SetExecutionState(bool executionState)
 {
     // Set Execution State
@@ -1046,6 +1051,10 @@ jenova::InterpreterBackend JenovaInterpreter::GetInterpreterBackend()
 void JenovaInterpreter::SetInterpreterBackend(jenova::InterpreterBackend newBackend)
 {
     interpreterBackend = newBackend;
+}
+bool JenovaInterpreter::ValidateBackendModel(jenova::InterpreterBackend backend)
+{
+    return interpreterBackend == backend;
 }
 jenova::FunctionPointer JenovaInterpreter::SolveVirtualFunction(jenova::ModuleHandle moduleHandle, const char* functionName)
 {

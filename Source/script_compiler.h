@@ -31,7 +31,7 @@ namespace jenova
 	public:
 		virtual bool InitializeCompiler(String compilerInstanceName = "<JenovaCompiler>") = 0;
 		virtual bool ReleaseCompiler() = 0;
-		virtual String PreprocessScript(Ref<CPPScript> cppScript, const Dictionary& preprocessorSettings) = 0;
+		virtual String PreprocessScript(Ref<CPPScript> cppScript, Dictionary& preprocessorSettings) = 0;
 		virtual CompileResult CompileScript(const String sourceCode) = 0;
 		virtual CompileResult CompileScriptWithCustomSettings(const String sourceCode, const Dictionary& compilerSettings) = 0;
 		virtual CompileResult CompileScriptFromFile(const String scriptFilePath) = 0;

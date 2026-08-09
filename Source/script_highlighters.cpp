@@ -104,7 +104,7 @@ void CPPSyntaxHighlighter::PerformHighlighting() const
 	PackedStringArray specialKeywords =
 	{
 		"jenova", "sdk", "godot", "std", "Ref",
-		"Caller", "Variant", "JenovaSDK",
+		"Caller", "Variant", "CarbonScript", "JenovaSDK",
 		"EngineMode", "FileSystemEvent", "RuntimeReloadMode", "RuntimeEvent", "ClassAccess",
 		"FunctionPtr", "NativePtr", "IntPtr", "BufferPtr", "ObjectPtr", "StringPtr", "WideStringPtr",
 		"ImageSize", "MemoryID", "VariableID", "TaskID", "UniqueID", "DriverResourceID", "TaskFunction", 
@@ -114,6 +114,7 @@ void CPPSyntaxHighlighter::PerformHighlighting() const
 	PackedStringArray macroKeywords =
 	{
 		jenova::GlobalSettings::ScriptToolIdentifier,
+		jenova::GlobalSettings::ScriptCarbonIdentifier,
 		jenova::GlobalSettings::ScriptRecordIdentifier,
 		jenova::GlobalSettings::ScriptBlockBeginIdentifier,
 		jenova::GlobalSettings::ScriptBlockEndIdentifier,

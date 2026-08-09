@@ -35,6 +35,7 @@ private:
 	String source_code;
 	Ref<Mutex> scriptMutex;
 	bool IsTool = false;
+	bool IsCarbon = false;
 
 public:
 	// Script Class Information
@@ -88,6 +89,11 @@ public:
 	void ReloadScriptSourceCode();
 
 	// Extra
+	bool is_carbon() const
+	{
+		if (!QUERY_PLATFORM(Windows)) return false;
+		return IsCarbon;
+	}
 	bool is_built_in() const
 	{
 		return get_path().is_empty() || get_path().contains("::") || get_path().begins_with("local://");
