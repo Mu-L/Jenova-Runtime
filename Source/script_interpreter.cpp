@@ -457,6 +457,7 @@ jenova::ScriptFunctionContainer JenovaInterpreter::CreateFunctionContainer(const
             Variant::Type paramType = jenova::GetVariantTypeFromStdString(paramTypes[pid]);
             PropertyInfo paramInfo(paramType, "Param");
             if (paramTypes[pid] == "godot::Variant")  paramInfo.usage = PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NIL_IS_VARIANT;
+            if (paramTypes[pid] == "jenova::sdk::Caller*") continue;
             scriptFunction.methodInfo.arguments.push_back(paramInfo);
         }
 
