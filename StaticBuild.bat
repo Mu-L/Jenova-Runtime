@@ -1,0 +1,1 @@
+python ./Jenova.Builder.py --skip-cache --generate-gdsdk --static-build --enable-blade --compiler win-msvc

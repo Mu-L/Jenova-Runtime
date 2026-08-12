@@ -2898,7 +2898,16 @@ namespace jenova
 				if (!extralibraryDirectories.empty() && extralibraryDirectories.back() != ';') extralibraryDirectories.push_back(';');
 				if (!extraLibraries.empty() && extraLibraries.back() != ';') extraLibraries.push_back(';');
 
-				// Add Packages Include/Linkage (Addons, Libraries etc.)
+				// Add Packages Include/Linkage (Libraries, Addons etc.)
+				for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+				{
+					if (!libraryConfig.Header.empty())
+					{
+						if (libraryConfig.Global) forcedHeaders += libraryConfig.Path + "/" + libraryConfig.Header + ";";
+						extraIncludeDirectories += libraryConfig.Path + ";";
+						if (!libraryConfig.Library.empty()) extraLibraries += libraryConfig.Path + "/" + libraryConfig.Library + ";";
+					}
+				}
 				for (const auto& addonConfig : jenova::GetInstalledAddons())
 				{
 					// Check For Addon Type
@@ -3226,7 +3235,15 @@ namespace jenova
 				// Adjust Compiler Settings
 				if (!extraIncludeDirectories.empty() && extraIncludeDirectories.back() != ';') extraIncludeDirectories.push_back(';');
 
-				// Add Packages Include/Linkage (Addons, Libraries etc.)
+				// Add Packages Include/Linkage (Libraries, Addons etc.)
+				for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+				{
+					if (!libraryConfig.Header.empty())
+					{
+						if (libraryConfig.Global) forcedHeaders += libraryConfig.Path + "/" + libraryConfig.Header + ";";
+						extraIncludeDirectories += libraryConfig.Path + ";";
+					}
+				}
 				for (const auto& addonConfig : jenova::GetInstalledAddons())
 				{
 					// Check For Addon Type
@@ -3427,7 +3444,15 @@ namespace jenova
 				// Adjust Compiler Settings
 				if (!extraIncludeDirectories.empty() && extraIncludeDirectories.back() != ';') extraIncludeDirectories.push_back(';');
 
-				// Add Packages Include/Linkage (Addons, Libraries etc.)
+				// Add Packages Include/Linkage (Libraries, Addons etc.)
+				for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+				{
+					if (!libraryConfig.Header.empty())
+					{
+						if (libraryConfig.Global) forcedHeaders += libraryConfig.Path + "/" + libraryConfig.Header + ";";
+						extraIncludeDirectories += libraryConfig.Path + ";";
+					}
+				}
 				for (const auto& addonConfig : jenova::GetInstalledAddons())
 				{
 					// Check For Addon Type
@@ -8023,7 +8048,7 @@ namespace jenova
 					try
 					{
 						// Create Addon Config
-						jenova::AddonConfig addonConfig;
+						jenova::PackageConfig addonConfig("Addon");
 
 						// Parse Addon Config Data
 						jenova::json_t addonConfigParser = jenova::json_t::parse(addonConfigData);
@@ -8048,8 +8073,9 @@ namespace jenova
 						// Add New Addon Config
 						addonList.push_back(addonConfig);
 					}
-					catch (const std::exception&)
+					catch (const std::exception& error)
 					{
+						jenova::Error("Addon Collector", "Failed to Parse Addon Package Config, Reason : %s", error.what());
 						continue;
 					}
 				}
@@ -8076,7 +8102,7 @@ namespace jenova
 					try
 					{
 						// Create Library Config
-						jenova::LibraryConfig libraryConfig;
+						jenova::PackageConfig libraryConfig("Library");
 
 						// Parse Library Config Data
 						jenova::json_t libraryConfigParser = jenova::json_t::parse(libraryConfigData);
@@ -8085,7 +8111,7 @@ namespace jenova
 						libraryConfig.License = libraryConfigParser["Library License"].get<std::string>();
 						libraryConfig.Arch = libraryConfigParser["Library Arch"].get<std::string>();
 						libraryConfig.Header = libraryConfigParser["Library Header"].get<std::string>();
-						libraryConfig.Library = libraryConfigParser["Library Binary"].get<std::string>();
+						libraryConfig.Library = libraryConfigParser["Library Library"].get<std::string>();
 						libraryConfig.Dependencies = libraryConfigParser["Library Dependencies"].get<std::string>();
 						libraryConfig.Global = libraryConfigParser["Library Global"].get<bool>();
 
@@ -8098,8 +8124,9 @@ namespace jenova
 						// Add New Library Config
 						libraryList.push_back(libraryConfig);
 					}
-					catch (const std::exception&)
+					catch (const std::exception& error)
 					{
+						jenova::Error("Library Collector", "Failed to Parse Library Package Config, Reason : %s", error.what());
 						continue;
 					}
 				}
@@ -8126,7 +8153,7 @@ namespace jenova
 					try
 					{
 						// Create Tool Config
-						jenova::ToolConfig toolConfig;
+						jenova::PackageConfig toolConfig("Tool");
 
 						// Parse Tool Config Data
 						jenova::json_t toolConfigParser = jenova::json_t::parse(toolConfigData);
@@ -8147,8 +8174,9 @@ namespace jenova
 						// Add New Tool Config
 						toolList.push_back(toolConfig);
 					}
-					catch (const std::exception&)
+					catch (const std::exception& error)
 					{
+						jenova::Error("Tool Collector", "Failed to Parse Tool Package Config, Reason : %s", error.what());
 						continue;
 					}
 				}
@@ -8976,7 +9004,15 @@ namespace jenova
 				// Adjust Paths
 				if (!extraIncludeDirectories.empty() && extraIncludeDirectories.back() != ';') extraIncludeDirectories.push_back(';');
 
-				// Add Packages Include/Linkage (Addons, Libraries etc.)
+				// Add Packages Include/Linkage (Libraries, Addons etc.)
+				for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+				{
+					if (!libraryConfig.Header.empty())
+					{
+						if (libraryConfig.Global) forcedHeaders += libraryConfig.Path + "/" + libraryConfig.Header + ";";
+						extraIncludeDirectories += libraryConfig.Path + ";";
+					}
+				}
 				for (const auto& addonConfig : jenova::GetInstalledAddons())
 				{
 					// Check For Addon Type
@@ -10181,6 +10217,9 @@ namespace jenova
 	}
 	bool ResolveAndLoadAddonModulesAtRuntime()
 	{
+		// Currently Only Supported On Windows
+		if (!QUERY_PLATFORM(Windows)) return true;
+
 		// Get Runtime Module Configuration Data
 		jenova::SerializedData runtimeConfigData = jenova::ObtainRuntimeModuleConfiguration();
 		if (runtimeConfigData == "{}") return false;

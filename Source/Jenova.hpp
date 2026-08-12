@@ -342,9 +342,7 @@ namespace jenova
 	struct ScriptModule;
 	struct ScriptMetadataCache;
 	struct JenovaPackage;
-	struct AddonConfig;
-	struct LibraryConfig;
-	struct ToolConfig;
+	struct PackageConfig;
 	struct QueuedFunction;
 
 	// Type Definitions
@@ -383,13 +381,13 @@ namespace jenova
 	typedef std::vector<JenovaPackage> PackageList;
 	typedef std::vector<size_t> IndexList;
 	typedef std::vector<uint8_t> MemoryBuffer;
-	typedef std::vector<AddonConfig> InstalledAddons;
-	typedef std::vector<LibraryConfig> InstalledLibrary;
-	typedef std::vector<ToolConfig> InstalledTools;
+	typedef std::vector<PackageConfig> InstalledAddons;
+	typedef std::vector<PackageConfig> InstalledLibrary;
+	typedef std::vector<PackageConfig> InstalledTools;
 	typedef std::string StringBuffer;
 	typedef std::unordered_map<std::string, void*> PointerStorage;
 	typedef std::unordered_map<ModuleHandle, json_t> LoadedAddons;
-	typedef std::unordered_map<ModuleHandle, ToolConfig> LoadedTools;
+	typedef std::unordered_map<ModuleHandle, PackageConfig> LoadedTools;
 	typedef std::unordered_map<UniqueID, QueuedFunction> FutureQueue;
 	typedef std::unordered_map<std::string, ScriptMetadataCache> MetadataCache;
 	typedef std::map<String, MemoryBuffer> ResourceDatabase;
@@ -774,55 +772,30 @@ namespace jenova
 			return pkgHash == other.pkgHash;
 		}
 	};
-	struct AddonConfig
+	struct PackageConfig
 	{
+		// Package Config Type
+		std::string configType		= "Unknown";
+
 		// Parsed Configurations
-		std::string Name;
-		std::string Version;
-		std::string License;
-		std::string Type;
-		std::string Arch;
-		std::string Header;
-		std::string Binary;
-		std::string Library;
-		std::string Dependencies;
-		std::string Path;
-		bool Global = false;
-		bool AutoLoad = false;
+		std::string Name;			// Shared
+		std::string Version;		// Shared
+		std::string License;		// Shared
+		std::string Type;			// Addon + Tool only
+		std::string Arch;			// Shared
+		std::string Header;			// Addon + Library only
+		std::string Binary;			// Addon + Tool only
+		std::string Library;		// Addon + Library only
+		std::string Dependencies;	// Shared
+		std::string Path;			// Shared
+		bool Global = false;		// Addon + Library only
+		bool AutoLoad = false;		// Addon only
 
 		// Serialized Data
 		SerializedData Data;
-	};
-	struct LibraryConfig
-	{
-		// Parsed Configurations
-		std::string Name;
-		std::string Version;
-		std::string License;
-		std::string Arch;
-		std::string Header;
-		std::string Library;
-		std::string Dependencies;
-		std::string Path;
-		bool Global = false;
 
-		// Serialized Data
-		SerializedData Data;
-	};
-	struct ToolConfig
-	{
-		// Parsed Configurations
-		std::string Name;
-		std::string Version;
-		std::string License;
-		std::string Type;
-		std::string Arch;
-		std::string Binary;
-		std::string Dependencies;
-		std::string Path;
-
-		// Serialized Data
-		SerializedData Data;
+		// Initializer
+		PackageConfig(std::string _configType) : configType(_configType) {}
 	};
 	struct QueuedFunction
 	{

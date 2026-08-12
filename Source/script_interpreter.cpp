@@ -527,7 +527,7 @@ jenova::ScriptPropertyContainer JenovaInterpreter::GetPropertyContainer(const st
         return CreatePropertyContainer(scriptUID);
     }
 }
-Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount)
+Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, const std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount)
 {
     // Validate Module
     if (!allowExecution) return GenerateFunctionCallError(functionName, "ERROR::EXECUTION_DENIED");

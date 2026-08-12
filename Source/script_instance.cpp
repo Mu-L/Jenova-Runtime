@@ -712,7 +712,14 @@ CPPScriptInstance::CPPScriptInstance(Object* p_owner, const Ref<CPPScript> p_scr
 	scriptInstanceIdentity = jenova::GenerateStandardUIDFromPath(p_script.ptr());
 
 	// Handle Carbon Script Instance Creation
-	if (script->is_carbon()) this->owner->call("on_carbon_instance_create");
+	if (script->is_carbon())
+	{
+		// Doesn't Support Hot-Reload
+		if (JenovaInterpreter::GetExecutionPermission())
+		{
+			JenovaInterpreter::CallFunction(p_owner, this, "on_carbon_instance_create", AS_STD_STRING(this->GetIdentity()), nullptr, 0);
+		}
+	}
 
 	// Register Script Instance to Manager
 	JenovaScriptManager::get_singleton()->add_script_instance(this);
@@ -723,7 +730,14 @@ CPPScriptInstance::~CPPScriptInstance()
 	jenova::VerboseByID(__LINE__, "CPPScriptInstance::~CPPScriptInstance (%s)", AS_C_STRING(this->GetIdentity()));
 
 	// Handle Carbon Script Instance Destruction
-	if (script->is_carbon()) this->owner->call("on_carbon_instance_destroy");
+	if (script->is_carbon())
+	{
+		// Doesn't Support Hot-Reload
+		if (JenovaInterpreter::GetExecutionPermission())
+		{
+			JenovaInterpreter::CallFunction(this->owner, this, "on_carbon_instance_destroy", AS_STD_STRING(this->GetIdentity()), nullptr, 0);
+		}
+	}
 
 	// Unregister Script Instance to Manager
 	JenovaScriptManager::get_singleton()->remove_script_instance(this);

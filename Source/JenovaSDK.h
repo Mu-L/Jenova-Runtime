@@ -831,15 +831,18 @@ namespace jenova::sdk
 template<typename T> class CarbonScript
 {
 public:
+	// Instance
 	T* _this;
 
-public:
-	CarbonScript(T* obj = nullptr) : _this(obj) {}
+	// Methods
 	T* GetObject() { return _this; }
 	const T* GetObject() const { return _this; }
 
-public:
+	// Routines
 	virtual godot::String _get_class_name() { return ""; }
+	virtual void _create() { }
+	virtual void _destroy() { }
+	virtual void _register_classes() { }
 	virtual void _register_methods() { }
 	virtual void _register_properties() { }
 };

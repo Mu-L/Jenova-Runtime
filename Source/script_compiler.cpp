@@ -246,7 +246,19 @@ namespace jenova
             // Add Additional Include Directories
             compilerArgument += GenerateAdditionalIncludeDirectories(compilerSettings["cpp_extra_include_directories"]);
 
-            // Add Packages Headers (Addons, Libraries etc.)
+            // Add Packages Headers (Libraries, Addons etc.)
+            for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+            {
+                if (!libraryConfig.Header.empty())
+                {
+                    if (libraryConfig.Global)
+                    {
+                        std::string headerPath = libraryConfig.Path + "/" + libraryConfig.Header;
+                        compilerArgument += "/FI \"" + headerPath + "\" ";
+                    }
+                    compilerArgument += "/I \"" + libraryConfig.Path + "\" ";
+                }
+            }
             for (const auto& addonConfig : jenova::GetInstalledAddons())
             {
                 // Check For Addon Type
@@ -731,7 +743,15 @@ namespace jenova
             // Add Additional Library Directories
             linkerArgument += GenerateAdditionalLibraryDirectories(linkerSettings["cpp_extra_library_directories"]);
 
-            // Add Packages Libraries (Addons, Libraries etc.)
+            // Add Packages Libraries (Libraries, Addons etc.)
+            for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+            {
+                if (!libraryConfig.Library.empty())
+                {
+                    std::string libraryPath = libraryConfig.Path + "/" + libraryConfig.Library;
+                    linkerArgument += "\"" + libraryPath + "\" ";
+                }
+            }
             for (const auto& addonConfig : jenova::GetInstalledAddons())
             {
                 // Check For Addon Type
@@ -1147,7 +1167,19 @@ namespace jenova
             // Force Include JenovaSDK Header
             if (jenova::GlobalSettings::ForceJenovaSDKHeader && jenova::GlobalStorage::UseBuiltinSDK) compilerArgument += "-include JenovaSDK.h ";
 
-            // Add Packages Headers (Addons, Libraries etc.)
+            // Add Packages Headers (Libraries, Addons etc.)
+            for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+            {
+                if (!libraryConfig.Header.empty())
+                {
+                    if (libraryConfig.Global)
+                    {
+                        std::string headerPath = libraryConfig.Path + "/" + libraryConfig.Header;
+                        compilerArgument += "-include \"" + headerPath + "\" ";
+                    }
+                    compilerArgument += "-I\"" + libraryConfig.Path + "\" ";
+                }
+            }
             for (const auto& addonConfig : jenova::GetInstalledAddons())
             {
                 // Check For Addon Type
@@ -1488,7 +1520,15 @@ namespace jenova
             // Add Additional Library Directories
             linkerArgument += GenerateLibraryPaths(linkerSettings["cpp_extra_library_directories"]);
 
-            // Add Packages Libraries (Addons, Libraries etc.)
+            // Add Packages Libraries (Libraries, Addons etc.)
+            for (const auto& libraryConfig : jenova::GetInstalledLibraries())
+            {
+                if (!libraryConfig.Library.empty())
+                {
+                    std::string libraryPath = libraryConfig.Path + "/" + libraryConfig.Library;
+                    linkerArgument += "\"" + libraryPath + "\" ";
+                }
+            }
             for (const auto& addonConfig : jenova::GetInstalledAddons())
             {
                 if (addonConfig.Type == "RuntimeModule")

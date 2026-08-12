@@ -43,7 +43,7 @@ public:
     static jenova::ScriptPropertyContainer CreatePropertyContainer(const std::string& scriptUID);
     static jenova::ScriptFunctionContainer GetFunctionContainer(const std::string& scriptUID);
     static jenova::ScriptPropertyContainer GetPropertyContainer(const std::string& scriptUID);
-    static Variant CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount);
+    static Variant CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, const std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount);
     static void SetExecutionPermission(bool executionState);
     static bool GetExecutionPermission();
     static void SetExecutionState(bool executionState);
