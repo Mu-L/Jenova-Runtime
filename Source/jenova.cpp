@@ -7917,33 +7917,31 @@ namespace jenova
 		file->close();
 		return md5_hex;
 	}
+	jenova::PackageList GetInstalledPackagesByType(jenova::PackageType type)
+	{
+		// Collect Packages
+		auto packages = JenovaPackageManager::get_singleton()->GetInstalledPackages(type);
+		jenova::PackageList filteredPackages;
+		for (const auto& pkg : packages) filteredPackages.push_back(pkg);
+
+		// Sort Package Collections
+		std::sort(filteredPackages.begin(), filteredPackages.end(),
+			[](const jenova::JenovaPackage& a, const jenova::JenovaPackage& b) { return a.pkgDestination < b.pkgDestination; });
+
+		// Return Package List
+		return filteredPackages;
+	}
 	jenova::PackageList GetInstalledAddonPackages()
 	{
-		// Collect Addon Packages
-		auto addonPackages = JenovaPackageManager::get_singleton()->GetInstalledPackages(jenova::PackageType::Addon);
-		jenova::PackageList filteredAddonPackages;
-		for (const auto& addonPackage : addonPackages) filteredAddonPackages.push_back(addonPackage);
-		
-		// Sort Package Collections
-		std::sort(filteredAddonPackages.begin(), filteredAddonPackages.end(),
-			[](const jenova::JenovaPackage& a, const jenova::JenovaPackage& b) { return a.pkgDestination < b.pkgDestination; });
-		
-		// Return Package List
-		return filteredAddonPackages;
+		return GetInstalledPackagesByType(jenova::PackageType::Addon);
+	}
+	jenova::PackageList GetInstalledLibraryPackages()
+	{
+		return GetInstalledPackagesByType(jenova::PackageType::Library);
 	}
 	jenova::PackageList GetInstalledToolPackages()
 	{
-		// Collect Tool Packages
-		auto toolPackages = JenovaPackageManager::get_singleton()->GetInstalledPackages(jenova::PackageType::Tool);
-		jenova::PackageList filteredToolPackages;
-		for (const auto& toolPackage : toolPackages) filteredToolPackages.push_back(toolPackage);
-
-		// Sort Package Collections
-		std::sort(filteredToolPackages.begin(), filteredToolPackages.end(),
-			[](const jenova::JenovaPackage& a, const jenova::JenovaPackage& b) { return a.pkgDestination < b.pkgDestination; });
-
-		// Return Package List
-		return filteredToolPackages;
+		return GetInstalledPackagesByType(jenova::PackageType::Tool);
 	}
 	jenova::PackageList GetInstalledCompilerPackages(const jenova::CompilerModel& compilerModel)
 	{
@@ -8060,6 +8058,56 @@ namespace jenova
 
 		// Return Addon List
 		return addonList;
+	}
+	jenova::InstalledLibrary GetInstalledLibraries()
+	{
+		// Create Library List
+		jenova::InstalledLibrary libraryList;
+
+		// Collect Installed Libraries
+		for (const auto& libraryPackage : jenova::GetInstalledLibraryPackages())
+		{
+			std::string libraryConfigFile = AS_STD_STRING(ProjectSettings::get_singleton()->globalize_path(libraryPackage.pkgDestination)) + "/Library-Config.json";
+			if (std::filesystem::exists(libraryConfigFile))
+			{
+				jenova::SerializedData libraryConfigData = jenova::ReadStdStringFromFile(libraryConfigFile);
+				if (!libraryConfigData.empty())
+				{
+					try
+					{
+						// Create Library Config
+						jenova::LibraryConfig libraryConfig;
+
+						// Parse Library Config Data
+						jenova::json_t libraryConfigParser = jenova::json_t::parse(libraryConfigData);
+						libraryConfig.Name = libraryConfigParser["Library Name"].get<std::string>();
+						libraryConfig.Version = libraryConfigParser["Library Version"].get<std::string>();
+						libraryConfig.License = libraryConfigParser["Library License"].get<std::string>();
+						libraryConfig.Arch = libraryConfigParser["Library Arch"].get<std::string>();
+						libraryConfig.Header = libraryConfigParser["Library Header"].get<std::string>();
+						libraryConfig.Library = libraryConfigParser["Library Binary"].get<std::string>();
+						libraryConfig.Dependencies = libraryConfigParser["Library Dependencies"].get<std::string>();
+						libraryConfig.Global = libraryConfigParser["Library Global"].get<bool>();
+
+						// Set Config Data
+						libraryConfig.Data = libraryConfigData;
+
+						// Set Library Path
+						libraryConfig.Path = std::filesystem::absolute(AS_STD_STRING(ProjectSettings::get_singleton()->globalize_path(libraryPackage.pkgDestination))).string();
+
+						// Add New Library Config
+						libraryList.push_back(libraryConfig);
+					}
+					catch (const std::exception&)
+					{
+						continue;
+					}
+				}
+			}
+		}
+
+		// Return Library List
+		return libraryList;
 	}
 	jenova::InstalledTools GetInstalledTools()
 	{

@@ -2584,7 +2584,6 @@ namespace jenova
             return new ClangCompiler();
         #endif
 
-
         // Not Supported
         return nullptr;
     }

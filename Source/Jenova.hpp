@@ -343,6 +343,7 @@ namespace jenova
 	struct ScriptMetadataCache;
 	struct JenovaPackage;
 	struct AddonConfig;
+	struct LibraryConfig;
 	struct ToolConfig;
 	struct QueuedFunction;
 
@@ -383,6 +384,7 @@ namespace jenova
 	typedef std::vector<size_t> IndexList;
 	typedef std::vector<uint8_t> MemoryBuffer;
 	typedef std::vector<AddonConfig> InstalledAddons;
+	typedef std::vector<LibraryConfig> InstalledLibrary;
 	typedef std::vector<ToolConfig> InstalledTools;
 	typedef std::string StringBuffer;
 	typedef std::unordered_map<std::string, void*> PointerStorage;
@@ -791,6 +793,22 @@ namespace jenova
 		// Serialized Data
 		SerializedData Data;
 	};
+	struct LibraryConfig
+	{
+		// Parsed Configurations
+		std::string Name;
+		std::string Version;
+		std::string License;
+		std::string Arch;
+		std::string Header;
+		std::string Library;
+		std::string Dependencies;
+		std::string Path;
+		bool Global = false;
+
+		// Serialized Data
+		SerializedData Data;
+	};
 	struct ToolConfig
 	{
 		// Parsed Configurations
@@ -1103,11 +1121,14 @@ namespace jenova
 	bool ReleasePopUpWindow(const Window* targetWindow);
 	String FormatBytesSize(size_t byteSize);
 	String GenerateMD5HashFromFile(const String& targetFile);
+	jenova::PackageList GetInstalledPackagesByType(jenova::PackageType type);
 	jenova::PackageList GetInstalledAddonPackages();
+	jenova::PackageList GetInstalledLibraryPackages();
 	jenova::PackageList GetInstalledToolPackages();
 	jenova::PackageList GetInstalledCompilerPackages(const jenova::CompilerModel& compilerModel);
 	jenova::PackageList GetInstalledGodotKitPackages();
 	jenova::InstalledAddons GetInstalledAddons();
+	jenova::InstalledLibrary GetInstalledLibraries();
 	jenova::InstalledTools GetInstalledTools();
 	String GetInstalledCompilerPathFromPackages(const String& compilerIdentity, const jenova::CompilerModel& compilerModel);
 	String GetInstalledGodotKitPathFromPackages(const String& godotKitIdentity);
