@@ -1009,6 +1009,7 @@ namespace jenova
 	std::string GenerateTerminalLogTime();
 	int GenerateHashFromString(const char* str);
 	Color GenerateColorVariation(Color initColor, int variationFactor);
+	std::string GenerateUniqueSignature(const std::string& seedA, const std::string& seedB);
 	jenova::UniqueID ObtainGlobalUniqueID();
 	jenova::EngineMode GetCurrentEngineInstanceMode();
 	bool IsEngineRuntimeExport();
@@ -1110,7 +1111,9 @@ namespace jenova
 	String GetInstalledGodotKitPathFromPackages(const String& godotKitIdentity);
 	std::string SolveGodotKitPathForExporters(const String& godotKitPath);
 	std::string ResolveVariantValueAsString(const Variant* variantValue, const std::string& variantType, jenova::PointerList& ptrList);
+	uintptr_t ResolveVariantValueAsPointer(const Variant* variantValue, const std::string& variantType, jenova::PointerList& ptrList);
 	std::string ResolveVariantTypeAsString(const Variant* variantValue);
+	std::string ResolveVariantTypeFromString(const std::string& typeString);
 	std::string ResolveReturnTypeForJIT(const std::string& returnType);
 	Variant ParseVariantValueFromString(const String& valueString);
 	Variant* MakeVariantFromReturnType(Variant* variantPtr, const char* returnType);

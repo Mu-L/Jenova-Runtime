@@ -137,6 +137,16 @@ bool JenovaInterpreter::LoadModule(const uint8_t* moduleDataPtr, size_t moduleSi
         }
     }
 
+    // Build Meteora 2.0 Interperter Backend Cache
+    if (interpreterBackend == jenova::InterpreterBackend::TinyCC2)
+    {
+        if (!JenovaInterpreter::BuildExecutionCache())
+        {
+            jenova::Error("Jenova Interpreter", "Failed to Build Meteora 2.0 Cache.");
+            return false;
+        }
+    }
+
     // Update Property Storage From Metadata
     if (!JenovaInterpreter::UpdatePropertyStorageFromMetaData())
     {
@@ -225,6 +235,17 @@ bool JenovaInterpreter::UnloadModule(const jenova::ModuleUnloadStage& unloadStag
 
     // If Debug Mode is Activated Unload Module Loaded From Disk
     if (executeInDebugMode) return jenova::ReleaseTemporaryModuleCache();
+
+    // Clean Up Meteora 2.0 Cache
+    if (interpreterBackend == jenova::InterpreterBackend::TinyCC2)
+    {
+        if (meteoraCallerContext != nullptr)
+        {
+            TCCState* tcc = static_cast<TCCState*>(meteoraCallerContext);
+            tcc_delete(tcc);
+            meteoraCallerContext = nullptr;
+        }
+    }
 
     // Unload Module
 	if (!moduleHandle) return false;
@@ -388,10 +409,7 @@ std::string JenovaInterpreter::GetFunctionUniqueSignature(const std::string& scr
     }
 
     // Fallback
-    std::string cleanName = functionName;
-    for (char& c : cleanName) if (!std::isalnum(c) && c != '_') c = '_';
-    std::string funcSignature = "fn_" + scriptUID + "_" + cleanName;
-    return base64::base64_encode(funcSignature);
+    return jenova::GenerateUniqueSignature(scriptUID, functionName);
 }
 std::string JenovaInterpreter::GetFunctionReturn(const std::string& functionName, const std::string& scriptUID)
 {
@@ -855,7 +873,7 @@ Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* in
         for (void* ptr : ptrList) if (ptr) delete ptr;
         ptrList.clear();
 
-        // Clean up
+        // Clean Up
         tcc_delete(tcc);
 
         // Process Result
@@ -872,7 +890,90 @@ Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* in
     }
     if (interpreterBackend == jenova::InterpreterBackend::TinyCC2)
     {
-        // Not Implemented Yet
+        // Ensure Execution Cache is Built
+        if (meteoraCallerContext == nullptr)
+        {
+            if (!JenovaInterpreter::BuildExecutionCache())
+            {
+                jenova::Error("Interpreter Backend", "Failed to Build Execution Cache.");
+                return Variant(false);
+            }
+        }
+
+        // Create Pointer List For Allocated Objects
+        jenova::PointerList ptrList;
+
+        // Get Compiled Caller Function
+        TCCState* tcc = static_cast<TCCState*>(meteoraCallerContext);
+        std::string uniqueName = GetFunctionUniqueSignature(scriptUID, functionName);
+
+        // Get Compiled Caller Function
+        using MetaCallerType = Variant*(*)(void**, int);
+        MetaCallerType interpreterCaller = (MetaCallerType)tcc_get_symbol(tcc, uniqueName.c_str());
+        if (!interpreterCaller)
+        {
+            jenova::Error("Interpreter Backend", "Failed to Get Interpreter JIT Caller.");
+            return Variant(false);
+        }
+
+        // Build Parameter Pointer Array
+        std::vector<void*> paramPtrs;
+        paramPtrs.reserve(resolvedParameters.size());
+
+        // Handle Caller
+        int paramIndex = 0;
+        if (needsPassingOwner)
+        {
+            paramPtrs.push_back(reinterpret_cast<void*>(resolvedParameters[0]));
+            paramIndex = 1;
+        }
+
+        // Resolve Each Parameter
+        for (size_t i = paramIndex; i < resolvedParameters.size(); i++)
+        {
+            // Get parameter type from metadata
+            std::string paramType = functionParametersType[i];
+
+            // Resolve parameter value to pointer
+            int funcParamIndex = i - (needsPassingOwner ? 1 : 0);
+            uintptr_t ptr = jenova::ResolveVariantValueAsPointer(functionParameters[funcParamIndex], paramType, ptrList);
+            paramPtrs.push_back(reinterpret_cast<void*>(ptr));
+        }
+
+        // Execute Caller
+        Variant* result = nullptr;
+        if (JenovaProfiler::IsEnabled())
+        {
+            if (!JenovaInterpreter::IsExecutingFunction()) JenovaProfiler::SetCurrentExecutionContext(scriptPath, functionName);
+            TP_CHECKPOINT_SET(GenerateFunctionUniqueID(scriptPath, functionName));
+            SetExecutionState(true);
+            result = interpreterCaller(paramPtrs.data(), (int)paramPtrs.size());
+            SetExecutionState(false);
+            double executionDuration = TP_CHECKPOINT_GET(GenerateFunctionUniqueID(scriptPath, functionName));
+            JenovaProfiler::AddExecutionRecord(scriptPath, functionName, executionDuration);
+        }
+        else
+        {
+            SetExecutionState(true);
+            result = interpreterCaller(paramPtrs.data(), (int)paramPtrs.size());
+            SetExecutionState(false);
+        }
+
+        // Release Allocated Values
+        for (void* ptr : ptrList) if (ptr) delete ptr;
+        ptrList.clear();
+
+        // Process Result
+        if (callMustReturn)
+        {
+            if (result)
+            {
+                Variant finalResult(*result);
+                delete result;
+                return finalResult;
+            }
+        }
+        return Variant(true);
     }
     if (interpreterBackend == jenova::InterpreterBackend::LibFFI)
     {
@@ -904,6 +1005,181 @@ bool JenovaInterpreter::IsExecutingFunction()
 void JenovaInterpreter::AbortExecution()
 {
     SetExecutionState(false);
+}
+bool JenovaInterpreter::BuildExecutionCache()
+{
+    // Helpers
+    auto getParamAccess = [&](const std::string& type, int index) -> std::string
+    {
+        std::string resolvedType = jenova::ResolveVariantTypeFromString(type);
+        if (resolvedType == "void*") return "(void*)params[" + std::to_string(index) + "]";
+        else return "*(" + resolvedType + "*)params[" + std::to_string(index) + "]";
+    };
+
+    // Cast & Clean Up Existing TCC State
+    if (meteoraCallerContext != nullptr)
+    {
+        TCCState* existingTCC = static_cast<TCCState*>(meteoraCallerContext);
+        tcc_delete(existingTCC);
+        meteoraCallerContext = nullptr;
+    }
+
+    // Initialize New TCC Compiler
+    TCCState* tcc = tcc_new();
+    if (!tcc)
+    {
+        jenova::Error("Interpreter Backend", "Failed to Initialize TCC Compiler.");
+        return false;
+    }
+
+    // Store As Handle
+    meteoraCallerContext = static_cast<jenova::GenericHandle>(tcc);
+
+    // Configure TCC Compiler
+    tcc_set_output_type(tcc, TCC_OUTPUT_MEMORY);
+    tcc_set_options(tcc, "-nostdlib");
+
+    // Add Symbols
+    tcc_add_symbol(tcc, "memmove", reinterpret_cast<const void*>(&jenova::RelocateMemory));
+    tcc_add_symbol(tcc, "MakeVariant", reinterpret_cast<const void*>(&jenova::MakeVariantFromReturnType));
+
+    // Build Callers Source Code
+    std::string fullSourceCode;
+    fullSourceCode += jenova::Format("struct Variant { unsigned char opaque[%d]; };\n", GODOT_CPP_VARIANT_SIZE);
+    fullSourceCode += "typedef struct Variant Variant;\n";
+    fullSourceCode += "typedef int bool;\n";
+    fullSourceCode += "#define true 1\n";
+    fullSourceCode += "#define false 0\n";
+    fullSourceCode += "Variant* MakeVariant(void*, char*);\n\n";
+
+    // Generate Callers Code
+    for (const auto& scriptEntry : metadataCache)
+    {
+        const std::string& scriptUID = scriptEntry.first;
+        const jenova::ScriptMetadataCache& cache = scriptEntry.second;
+
+        for (const auto& functionName : cache.functionNames)
+        {
+            // Get Function Details From Cache
+            auto paramsIt = cache.functionParams.find(functionName);
+            auto returnIt = cache.functionReturns.find(functionName);
+            auto addrIt = cache.functionAddresses.find(functionName);
+
+            if (paramsIt == cache.functionParams.end() || returnIt == cache.functionReturns.end() || addrIt == cache.functionAddresses.end()) continue;
+
+            std::string returnType = returnIt->second;
+            auto paramTypes = paramsIt->second;
+            jenova::FunctionAddress address = addrIt->second;
+
+            // Get Unique Function Signature
+            std::string uniqueName = GetFunctionUniqueSignature(scriptUID, functionName);
+
+            // Generate Caller Function
+            fullSourceCode += "Variant* " + uniqueName + "(void** params, int paramCount)\n";
+            fullSourceCode += "{\n";
+
+            // Cast To Function Pointer
+            fullSourceCode += "typedef " + jenova::ResolveReturnTypeForJIT(returnType) + "(*function_t)(";
+
+            // Handle Caller If Used
+            bool needsPassingOwner = false;
+            if (!paramTypes.empty() && paramTypes[0] == "jenova::sdk::Caller*")
+            {
+                needsPassingOwner = true;
+                fullSourceCode += "void*";
+            }
+            for (size_t i = 0; i < paramTypes.size(); i++)
+            {
+                if (i == 0 && needsPassingOwner) continue;
+                if (i > 0 || needsPassingOwner) fullSourceCode += ",";
+                fullSourceCode += jenova::ResolveVariantTypeFromString(paramTypes[i]);
+            }
+
+            fullSourceCode += ");\n";
+            fullSourceCode += jenova::Format("function_t _func = (function_t)0x%llx;\n", address);
+
+            // Call The Function With Parameters From The Array
+            if (JenovaInterpreter::IsFunctionReturnable(returnType))
+            {
+                fullSourceCode += jenova::ResolveReturnTypeForJIT(returnType) + " result = ";
+                fullSourceCode += "_func(";
+
+                int paramIndex = 0;
+                if (needsPassingOwner)
+                {
+                    fullSourceCode += "(void*)params[0]";
+                    paramIndex = 1;
+                }
+
+                for (size_t i = 0; i < paramTypes.size(); i++)
+                {
+                    if (i == 0 && needsPassingOwner) continue;
+                    if (paramIndex > 0 || needsPassingOwner) fullSourceCode += ",";
+                    fullSourceCode += getParamAccess(paramTypes[i], paramIndex);
+                    paramIndex++;
+                }
+
+                fullSourceCode += ");\n";
+                fullSourceCode += "return MakeVariant(&result,\"" + returnType + "\");\n";
+            }
+            else
+            {
+                fullSourceCode += "_func(";
+
+                int paramIndex = 0;
+                if (needsPassingOwner)
+                {
+                    fullSourceCode += "(void*)params[0]";
+                    paramIndex = 1;
+                }
+
+                for (size_t i = 0; i < paramTypes.size(); i++)
+                {
+                    if (i == 0 && needsPassingOwner) continue;
+                    if (paramIndex > 0 || needsPassingOwner) fullSourceCode += ",";
+                    fullSourceCode += getParamAccess(paramTypes[i], paramIndex);
+                    paramIndex++;
+                }
+
+                fullSourceCode += ");\n";
+                fullSourceCode += "return 0;\n";
+            }
+
+            fullSourceCode += "}\n\n";
+        }
+    }
+
+    // Create Error/Warning Reporter
+    if (jenova::GlobalStorage::DeveloperModeActivated)
+    {
+        jenova::VerboseByID(__LINE__, "Meteora 2.0 JIT Execution Code : \n%s", fullSourceCode.c_str());
+        auto tcc_error_handler = [](void* opaque, const char* msg) -> void
+        {
+            jenova::Error("Interpreter Backend", "%s", msg);
+        };
+        tcc_set_error_func(tcc, nullptr, tcc_error_handler);
+    }
+
+    // Compile Generated Code
+    if (tcc_compile_string(tcc, fullSourceCode.c_str()) == -1)
+    {
+        jenova::Error("Interpreter Backend", "Failed to Compile Interpreter Code.");
+        tcc_delete(tcc);
+        meteoraCallerContext = nullptr;
+        return false;
+    }
+
+    // Prepare For Execution
+    if (tcc_relocate(tcc, TCC_RELOCATE_AUTO) < 0)
+    {
+        jenova::Error("Interpreter Backend", "Failed to Resolve Interpreter Code.");
+        tcc_delete(tcc);
+        meteoraCallerContext = nullptr;
+        return false;
+    }
+
+    // All Good
+    return true;
 }
 std::string JenovaInterpreter::GenerateFunctionUniqueID(const std::string& scriptPath, const std::string& functionName)
 {
@@ -2078,10 +2354,7 @@ bool JenovaInterpreter::BuildMetadataCache()
             // Pre-calculate Function Signatures
             for (const auto& functionName : scriptCache.functionNames)
             {
-                std::string cleanName = functionName;
-                for (char& c : cleanName) if (!std::isalnum(c) && c != '_') c = '_';
-                std::string funcSignature = "fn_" + scriptUID + "_" + cleanName;
-                scriptCache.functionSignatures[functionName] = base64::base64_encode(funcSignature);
+                scriptCache.functionSignatures[functionName] = GetFunctionUniqueSignature(scriptUID, functionName);
             }
 
             // Build Function Container

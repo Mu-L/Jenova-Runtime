@@ -103,7 +103,7 @@ namespace jenova
 
 		private:
 			// Default Settings
-			const jenova::InterpreterBackend InterpreterBackendDefaultMode = jenova::InterpreterBackend::TinyCC;
+			const jenova::InterpreterBackend InterpreterBackendDefaultMode = jenova::InterpreterBackend::TinyCC2;
 			const jenova::ProfilingMode ProfilingModeDefaultMode = jenova::ProfilingMode::Disabled;
 			const jenova::BuildAndRunMode BuildAndRunDefaultMode = jenova::BuildAndRunMode::DoNothing;
 			const jenova::ChangesTriggerMode ExternalChangesDefaultTriggerMode = jenova::ChangesTriggerMode::DoNothing;
@@ -496,7 +496,7 @@ namespace jenova
 
 						// Interpreter Backend Property
 						PropertyInfo InterpreterBackendProperty(Variant::INT, InterpreterBackendConfigPath,
-							PropertyHint::PROPERTY_HINT_ENUM, "NitroJIT (Fastest),Meteora (Fast),Meteora 2.0 (Very Fast),Halo (Soon)",
+							PropertyHint::PROPERTY_HINT_ENUM, "NitroJIT (Very Fast),Meteora (Fast),Meteora 2.0 (Fastest),Halo (Soon)",
 							PROPERTY_USAGE_NONE, JenovaEditorSettingsCategory);
 						editor_settings->add_property_info(InterpreterBackendProperty);
 						editor_settings->set_initial_value(InterpreterBackendConfigPath, int32_t(InterpreterBackendDefaultMode), false);
@@ -6166,6 +6166,15 @@ namespace jenova
 		initColor.set_hsv(Math::fmod((1.0f / float(variationFactor)) * float(variationSeed++), 0.9f), initColor.get_s() * 0.9f, initColor.get_v() * 1.4f, 0.8f);
 		return initColor;
 	}
+	std::string GenerateUniqueSignature(const std::string& seedA, const std::string& seedB)
+	{
+		std::string result = "_jnv_";
+		std::string signature = seedA + "_" + seedB;
+		std::string encoded = base64::base64_encode(signature);
+		result.reserve(result.length() + encoded.length());
+		for (char c : encoded) if (std::isalnum(c) || c == '_') result += c;
+		return result;
+	}
 	jenova::UniqueID ObtainGlobalUniqueID()
 	{
 		static std::atomic<uint64_t> nextID{ 1 };
@@ -8458,11 +8467,270 @@ namespace jenova
 		// Default Case
 		return jenova::Format("(void*)0x%llx", (void*)variantValue);
 	}
+	uintptr_t ResolveVariantValueAsPointer(const Variant* variantValue, const std::string& variantType, jenova::PointerList& ptrList)
+	{
+		// Bypass Variant
+		if (variantType == "godot::Variant&" || variantType == "godot::Variant*" || variantType == "godot::Variant")
+		{
+			return reinterpret_cast<uintptr_t>((void*)variantValue);
+		}
+
+		// Atomic Types
+		if (variantValue->get_type() == Variant::BOOL) return (uintptr_t)(bool)(*variantValue);
+		if (variantValue->get_type() == Variant::FLOAT)
+		{
+			double value = double(*variantValue);
+			double* ptr = new double(value);
+			ptrList.push_back(ptr);
+			return reinterpret_cast<uintptr_t>(ptr);
+		}
+		if (variantValue->get_type() == Variant::INT)
+		{
+			int64_t value = int64_t(*variantValue);
+			int64_t* ptr = new int64_t(value);
+			ptrList.push_back(ptr);
+			return reinterpret_cast<uintptr_t>(ptr);
+		}
+		if (variantValue->get_type() == Variant::STRING)
+		{
+			String* value = new String(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+
+		// Math Types
+		if (variantValue->get_type() == Variant::VECTOR2)
+		{
+			Vector2* value = new Vector2(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::VECTOR2I)
+		{
+			Vector2i* value = new Vector2i(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::VECTOR3)
+		{
+			Vector3* value = new Vector3(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::VECTOR3I)
+		{
+			Vector3i* value = new Vector3i(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::RECT2)
+		{
+			Rect2* value = new Rect2(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::RECT2I)
+		{
+			Rect2i* value = new Rect2i(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::VECTOR4)
+		{
+			Vector4* value = new Vector4(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::VECTOR4I)
+		{
+			Vector4i* value = new Vector4i(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::TRANSFORM2D)
+		{
+			Transform2D* value = new Transform2D(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PLANE)
+		{
+			Plane* value = new Plane(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::QUATERNION)
+		{
+			Quaternion* value = new Quaternion(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::AABB)
+		{
+			AABB* value = new AABB(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::BASIS)
+		{
+			Basis* value = new Basis(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::TRANSFORM3D)
+		{
+			Transform3D* value = new Transform3D(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PROJECTION)
+		{
+			Projection* value = new Projection(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+
+		// Misc Types
+		if (variantValue->get_type() == Variant::COLOR)
+		{
+			Color* value = new Color(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::STRING_NAME)
+		{
+			StringName* value = new StringName(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::NODE_PATH)
+		{
+			NodePath* value = new NodePath(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::RID)
+		{
+			RID* value = new RID(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::OBJECT)
+		{
+			if (jenova::GlobalSettings::UnwrapObjectVariantOnMeteora)
+			{
+				Object* obj = variantValue->operator Object * ();
+				return reinterpret_cast<uintptr_t>((void*)obj);
+			}
+			else
+			{
+				return reinterpret_cast<uintptr_t>((void*)variantValue);
+			}
+		}
+		if (variantValue->get_type() == Variant::CALLABLE)
+		{
+			Callable* value = new Callable(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::SIGNAL)
+		{
+			Signal* value = new Signal(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::DICTIONARY)
+		{
+			Dictionary* value = new Dictionary(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::ARRAY)
+		{
+			Array* value = new Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+
+		// Typed Arrays
+		if (variantValue->get_type() == Variant::PACKED_BYTE_ARRAY)
+		{
+			PackedByteArray* value = new PackedByteArray(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_INT32_ARRAY)
+		{
+			PackedInt32Array* value = new PackedInt32Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_INT64_ARRAY)
+		{
+			PackedInt64Array* value = new PackedInt64Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_FLOAT32_ARRAY)
+		{
+			PackedFloat32Array* value = new PackedFloat32Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_FLOAT64_ARRAY)
+		{
+			PackedFloat64Array* value = new PackedFloat64Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_STRING_ARRAY)
+		{
+			PackedStringArray* value = new PackedStringArray(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_VECTOR2_ARRAY)
+		{
+			PackedVector2Array* value = new PackedVector2Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_VECTOR3_ARRAY)
+		{
+			PackedVector3Array* value = new PackedVector3Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_VECTOR4_ARRAY)
+		{
+			PackedVector4Array* value = new PackedVector4Array(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+		if (variantValue->get_type() == Variant::PACKED_COLOR_ARRAY)
+		{
+			PackedColorArray* value = new PackedColorArray(*variantValue);
+			ptrList.push_back(value);
+			return reinterpret_cast<uintptr_t>(value);
+		}
+
+		// Default Case
+		return reinterpret_cast<uintptr_t>((void*)variantValue);
+	}
 	std::string ResolveVariantTypeAsString(const Variant* variantValue)
 	{
 		if (variantValue->get_type() == Variant::BOOL) return "bool";
 		if (variantValue->get_type() == Variant::FLOAT) return "double";
 		if (variantValue->get_type() == Variant::INT) return "long long int";
+		return "void*";
+	}
+	std::string ResolveVariantTypeFromString(const std::string& typeString)
+	{
+		if (typeString == "bool") return "bool";
+		if (typeString == "int") return "int";
+		if (typeString == "int64_t") return "long long int";
+		if (typeString == "double") return "double";
+		if (typeString == "float") return "double";
 		return "void*";
 	}
 	std::string ResolveReturnTypeForJIT(const std::string& returnType)
@@ -8482,10 +8750,11 @@ namespace jenova
 		if (returnType.find("*") != std::string::npos) 
 		{
 			jenova::ErrorMessage("Yo yo yo!",
-				"You just tried returning a fucking raw pointer from a script, bitch.\n"
+				"You just tried returning a fucking raw pointer from a script block, bitch.\n"
 				"Godot ain't built for that shady stuff, man. It's gonna blow up in your face. "
 				"Wrap that thing in a Variant or use an IntPtr like a pro.\n"
-				"Otherwise? Boom. Game over. Science, yo."
+				"Otherwise? Boom. Game over. Science, yo.\n"
+				"Offender Type : %s", returnType.c_str()
 			);
 
 			/* Todo : Add Support for Direct Raw Pointer Exchange */

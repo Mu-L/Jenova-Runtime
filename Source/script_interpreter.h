@@ -50,6 +50,7 @@ public:
     static void SetExecutionState(bool executionState);
     static bool IsExecutingFunction();
     static void AbortExecution();
+    static bool BuildExecutionCache();
     static std::string GenerateFunctionUniqueID(const std::string& scriptPath, const std::string& functionName);
     static Variant GenerateFunctionCallError(const std::string& functionName, const String& errorReason);
     static bool FlushPropertyStorage();
@@ -94,6 +95,7 @@ private:
     static inline bool                          hasDebugInformation     = false;
     static inline bool                          executeInDebugMode      = false;
     static inline std::string                   moduleDiskPath          = "";
+    static inline jenova::GenericHandle         meteoraCallerContext    = nullptr;
     static inline jenova::InterpreterBackend    interpreterBackend      = jenova::InterpreterBackend::TinyCC;
     static inline jenova::PointerStorage        propertyStorage         = jenova::PointerStorage();
     static inline jenova::PropertySetMethod     propertySetMethod       = jenova::PropertySetMethod::DirectAssign;
