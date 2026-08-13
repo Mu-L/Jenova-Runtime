@@ -466,6 +466,7 @@ namespace jenova
 	{
 		AsmJIT,
 		TinyCC,
+		TinyCC2,
 		LibFFI,
 		Unknown
 	};
@@ -679,6 +680,8 @@ namespace jenova
 		std::unordered_map<std::string, jenova::ParameterTypeList> functionParams;
 		std::unordered_map<std::string, std::string> functionReturns;
 		std::unordered_map<std::string, std::string> propertyTypes;
+
+		std::unordered_map<std::string, std::string> functionSignatures;
 	};
 	struct ScriptFileState
 	{

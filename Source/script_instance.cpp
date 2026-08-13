@@ -261,9 +261,12 @@ Variant CPPScriptInstance::callp(const StringName& p_method, const Variant** p_a
 	// Perform Carbon Checks
 	if (script->is_carbon())
 	{
-		if (!JenovaInterpreter::ValidateBackendModel(jenova::InterpreterBackend::TinyCC))
+		bool backendSupported = false;
+		if (JenovaInterpreter::ValidateBackendModel(jenova::InterpreterBackend::TinyCC)) backendSupported = true;
+		if (JenovaInterpreter::ValidateBackendModel(jenova::InterpreterBackend::TinyCC2)) backendSupported = true;
+		if (!backendSupported)
 		{
-			jenova::Error("Jenova Interpreter", "Carbon Scripts are Supported Exclusively on Meteora Backend, Execution Skipped.");
+			jenova::Error("Jenova Interpreter", "Carbon Scripts are Supported Exclusively on Meteora Backends, Execution Skipped.");
 			r_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
 			return Variant();
 		}

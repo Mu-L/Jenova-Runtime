@@ -36,13 +36,14 @@ public:
     static jenova::FunctionList GetFunctionsList(const std::string& scriptUID);
     static jenova::FunctionAddress GetFunctionAddress(const std::string& functionName, const std::string& scriptUID);
     static jenova::ParameterTypeList GetFunctionParameters(const std::string& functionName, const std::string& scriptUID);
+    static std::string GetFunctionUniqueSignature(const std::string& scriptUID, const std::string& functionName);
     static std::string GetFunctionReturn(const std::string& functionName, const std::string& scriptUID);
     static uintptr_t GetResolvedParameterPointer(const godot::Object* objectPtr, const godot::Variant* functionParameter, const std::string& parameterType);
     static bool IsFunctionReturnable(const std::string& returnType);
     static jenova::ScriptFunctionContainer CreateFunctionContainer(const std::string& scriptUID);
     static jenova::ScriptPropertyContainer CreatePropertyContainer(const std::string& scriptUID);
-    static jenova::ScriptFunctionContainer GetFunctionContainer(const std::string& scriptUID);
-    static jenova::ScriptPropertyContainer GetPropertyContainer(const std::string& scriptUID);
+    static const jenova::ScriptFunctionContainer& GetFunctionContainer(const std::string& scriptUID);
+    static const jenova::ScriptPropertyContainer& GetPropertyContainer(const std::string& scriptUID);
     static Variant CallFunction(const godot::Object* objectPtr, void* instance, const std::string& functionName, const std::string& scriptUID, const Variant** functionParameters, const int functionParametersCount);
     static void SetExecutionPermission(bool executionState);
     static bool GetExecutionPermission();
