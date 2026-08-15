@@ -191,6 +191,7 @@
 #include <classes/style_box.hpp>
 #include <classes/style_box_empty.hpp>
 #include <classes/style_box_flat.hpp>
+#include <classes/style_box_line.hpp>
 #include <classes/panel.hpp>
 #include <classes/viewport.hpp>
 #include <classes/viewport_texture.hpp>
@@ -330,6 +331,7 @@ using namespace godot;
 #define QUERY_PROFILING_MODE(mode)			(jenova::GlobalStorage::CurrentProfilingMode == jenova::ProfilingMode::mode)
 #define QUERY_PLATFORM(platform)			(TARGET_PLATFORM_CURRENT == jenova::TargetPlatform::platform)
 #define SCALED(value)						((double)value * (double)scaleFactor)
+#define EMOJI(emoji)						String::utf8((const char*)u8##emoji)
 
 // Helper Markers
 #define InParam

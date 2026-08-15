@@ -1,4 +1,4 @@
-
+﻿
 /*-------------------------------------------------------------+
 |                                                              |
 |                   _________   ______ _    _____              |
@@ -153,6 +153,7 @@ private:
 	Button* profilerNextFrameTool = nullptr;
 	Button* foldAllScriptsTool = nullptr;
 	Button* advancedVisualizerTool = nullptr;
+	Button* bellardModeTool = nullptr;
 
 	// Resources
 	Ref<Theme> editorTheme;
@@ -176,6 +177,7 @@ private:
 	Ref<ImageTexture> forwardFrameImage;
 	Ref<ImageTexture> foldAllImage;
 	Ref<ImageTexture> advVisualizerImage;
+	Ref<ImageTexture> bellardHeadImage;
 	Ref<Font> cascadiaFont;
 	Ref<Font> spaceMonoRegularFont;
 	Ref<Font> spaceMonoItalicFont;
@@ -290,7 +292,117 @@ private:
 		// All Good
 		jenova::Output("Sentinel Profiler Database Visualizer Successfully Launched.");
 	}
+	void OpenBellardTribute()
+	{
+		// Create Dialog
+		AcceptDialog* dialog = memnew(AcceptDialog);
+		dialog->set_title("Bellard's Blessing");
+		dialog->set_min_size(Vector2i(SCALED(450), SCALED(350)));
+		dialog->set_max_size(dialog->get_min_size());
+		dialog->set_flag(Window::Flags::FLAG_RESIZE_DISABLED, true);
+		dialog->set_flag(Window::Flags::FLAG_MAXIMIZE_DISABLED, true);
 
+		// Main Container
+		VBoxContainer* mainBox = memnew(VBoxContainer);
+		mainBox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		mainBox->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		mainBox->add_theme_constant_override("separation", SCALED(10));
+		dialog->add_child(mainBox);
+
+		// Top Section (Image & Header)
+		HBoxContainer* topSection = memnew(HBoxContainer);
+		topSection->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		topSection->add_theme_constant_override("separation", SCALED(15));
+		mainBox->add_child(topSection);
+
+		// Bellard Icon
+		TextureRect* icon = memnew(TextureRect);
+		icon->set_size(Vector2(SCALED(80), SCALED(80)));
+		icon->set_custom_minimum_size(icon->get_size());
+		icon->set_texture(MAKE_IMAGE_FROM_BUFFER_EX(RESOURCE_BUFFER(SVG_BELLARD_ICON), icon->get_size()));
+		icon->set_stretch_mode(TextureRect::STRETCH_KEEP_CENTERED);
+		topSection->add_child(icon);
+
+		// Header Container
+		VBoxContainer* headerBox = memnew(VBoxContainer);
+		RichTextLabel* headerText = memnew(RichTextLabel);
+		headerBox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		topSection->add_child(headerBox);
+		headerText->set_use_bbcode(true);
+		headerText->set_fit_content(true);
+		headerText->add_theme_stylebox_override("normal", memnew(StyleBoxEmpty));
+		headerText->add_theme_font_size_override("font_size", SCALED(14));
+		headerText->add_theme_font_size_override("line_spacing", SCALED(5));
+		Color accentColor = editorTheme->get_color("accent_color", "Editor");
+		headerText->set_text("[color=#999999]This project was made possible by[/color]\n"
+			"[color=#" + accentColor.to_html() + "][font_size=" + String::num(SCALED(40)) + "][b]Fabrice Bellard[/b][/font_size][/color]\n"
+			"[color=#" + Color(accentColor.lightened(0.4), 0.95).to_html() + "]Old School [char=00B7] Deadly [char=00B7] Underrated[/color]");
+		headerBox->add_child(headerText);
+
+		// Separator
+		MarginContainer* separatorWrap = memnew(MarginContainer);
+		HSeparator* separator = memnew(HSeparator);
+		Ref<StyleBoxLine> separatorStyle = memnew(StyleBoxLine);
+		separatorWrap->add_theme_constant_override("margin_left", SCALED(10));
+		separatorWrap->add_theme_constant_override("margin_right", SCALED(10));
+		separatorStyle->set_color(Color(1, 1, 1, 0.3));
+		separator->add_theme_stylebox_override("separator", separatorStyle);
+		separatorWrap->add_child(separator);
+		mainBox->add_child(separatorWrap);
+
+		// Facts List
+		struct BellardFact { String icon; String text; };
+		BellardFact factData[] =
+		{
+			{EMOJI("🧠"), "Calculated Pi to 2.7 trillion digits using his own algorithm"},
+			{EMOJI("⚡"), "Made TinyCC : Compiles Linux Kernel under 15 seconds!"},
+			{EMOJI("🎬"), "Made FFmpeg : Backbone of 90% of all video on the internet."},
+			{EMOJI("🖥️"), "Made QEMU : Powers AWS, Google Cloud and Azure"},
+			{EMOJI("📜"), "Made QuickJS : 1MB JavaScript Engine that supports ES2020"},
+			{EMOJI("🐐"), "Aren't you still not convinced he's the GOAT?"}
+		};
+		VBoxContainer* factsBox = memnew(VBoxContainer);
+		factsBox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		factsBox->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+		factsBox->add_theme_constant_override("separation", SCALED(2));
+		mainBox->add_child(factsBox);
+		for (auto& fact : factData)
+		{
+			Label* factLabel = memnew(Label);
+			factLabel->set_text(fact.icon + "  " + fact.text);
+			factLabel->add_theme_color_override("font_color", Color(1, 1, 1, 0.85));
+			factLabel->add_theme_font_size_override("font_size", SCALED(13));
+			factLabel->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
+			factsBox->add_child(factLabel);
+		}
+
+		// Dialog Button
+		dialog->get_ok_button()->set_text("What a Fucking Legend!");
+		dialog->get_ok_button()->set_custom_minimum_size(Vector2(SCALED(80), SCALED(30)));
+
+		// Define Internal UI Callback Handler
+		class DialogEventManager : public Object
+		{
+		private:
+			AcceptDialog* dialog = nullptr;
+		public:
+			DialogEventManager(AcceptDialog* _dialog) : dialog(_dialog) {}
+			void OnClose()
+			{
+				dialog->queue_free();
+				memdelete(this);
+			}
+		};
+
+		// Create & Assign Callbacks
+		DialogEventManager* events = memnew(DialogEventManager(dialog));
+		dialog->connect("confirmed", callable_mp(events, &DialogEventManager::OnClose));
+		dialog->connect("canceled", callable_mp(events, &DialogEventManager::OnClose));
+		dialog->connect("close_requested", callable_mp(events, &DialogEventManager::OnClose));
+
+		// Show Dialog
+		dialog->popup_exclusive_centered(this);
+	}
 private:
 	// Methods
 	void InitializeResources()
@@ -394,11 +506,12 @@ private:
 		connectionLastImage = MAKE_IMAGE_FROM_BUFFER(RESOURCE_BUFFER(SVG_CONNECTION_END_ICON));
 
 		// Create Toolbar Icon Image Resources
-		reloadToolbarImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_RELOAD_ICON));
-		backwardFrameImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_BACKWARD_FRAME_ICON));
-		forwardFrameImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_FORWARD_FRAME_ICON));
-		foldAllImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_FOLD_ALL_ICON));
-		advVisualizerImage = jenova::CreateMenuItemIconFromByteArray(RESOURCE_BUFFER(SVG_PIE_CHART_ICON));
+		reloadToolbarImage = CREATE_SVG_MENU_ICON(SVG_RELOAD_ICON);
+		backwardFrameImage = CREATE_SVG_MENU_ICON(SVG_BACKWARD_FRAME_ICON);
+		forwardFrameImage = CREATE_SVG_MENU_ICON(SVG_FORWARD_FRAME_ICON);
+		foldAllImage = CREATE_SVG_MENU_ICON(SVG_FOLD_ALL_ICON);
+		advVisualizerImage = CREATE_SVG_MENU_ICON(SVG_PIE_CHART_ICON);
+		bellardHeadImage = CREATE_SVG_MENU_ICON(SVG_BELLARD_ICON);
 
 		// Create Font Resources
 		cascadiaFont = jenova::CreateFontFileFromByteArray(RESOURCE_BUFFER(FONT_CASCADIACODE_REGULAR));
@@ -476,6 +589,8 @@ private:
 		foldAllScriptsTool = CreateNewToolbarItem("FoldAllScriptItems", foldAllImage, "Fold All Script Items", _Toolbar);
 		CreateNewToolbarSeparator(_Toolbar);
 		advancedVisualizerTool = CreateNewToolbarItem("OpenAdvancedVisualizer", advVisualizerImage, "Open Profiler Database in Sentinel Visualizer...", _Toolbar);
+		CreateNewToolbarSeparator(_Toolbar);	
+		bellardModeTool = CreateNewToolbarItem("BellardTribute", bellardHeadImage, "Bellard's Blessing", _Toolbar);
 
 		// Assign Signals
 		reloadProfilerCacheTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::ReloadProfilerDatabase));
@@ -483,6 +598,7 @@ private:
 		profilerNextFrameTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::MoveProfilerFrame).bind(1));
 		foldAllScriptsTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::FoldAllScriptItems));
 		advancedVisualizerTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::OpenAdvancedVisualizer));
+		bellardModeTool->connect("pressed", callable_mp(this, &ScriptManagerWindow::OpenBellardTribute));
 	}
 	void ReleaseResources()
 	{

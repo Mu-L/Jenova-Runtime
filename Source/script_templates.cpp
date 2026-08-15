@@ -272,10 +272,17 @@ bool JenovaTemplateManager::UpdateScriptTemplates()
 				// Skip If Backend Mismatch
 				if (backend != "Universal")
 				{
-					jenova::InterpreterBackend requiredBackend = jenova::InterpreterBackend::Unknown;
-					if (backend == "NitroJIT") requiredBackend = jenova::InterpreterBackend::AsmJIT;
-					if (backend == "Meteora") requiredBackend = jenova::InterpreterBackend::TinyCC;
-					if (JenovaInterpreter::GetInterpreterBackend() != requiredBackend) continue;
+					auto currentBackend = JenovaInterpreter::GetInterpreterBackend();
+					bool isCompatible = false;
+					if (backend == "NitroJIT")
+					{
+						isCompatible = (currentBackend == jenova::InterpreterBackend::AsmJIT);
+					}
+					else if (backend == "Meteora")
+					{
+						isCompatible = (currentBackend == jenova::InterpreterBackend::TinyCC || currentBackend == jenova::InterpreterBackend::TinyCC2);
+					}
+					if (!isCompatible) continue;
 				}
 
 				// Add Global Script Template
@@ -294,10 +301,17 @@ bool JenovaTemplateManager::UpdateScriptTemplates()
 				// Skip If Backend Mismatch
 				if (backend != "Universal")
 				{
-					jenova::InterpreterBackend requiredBackend = jenova::InterpreterBackend::Unknown;
-					if (backend == "NitroJIT") requiredBackend = jenova::InterpreterBackend::AsmJIT;
-					if (backend == "Meteora") requiredBackend = jenova::InterpreterBackend::TinyCC;
-					if (JenovaInterpreter::GetInterpreterBackend() != requiredBackend) continue;
+					auto currentBackend = JenovaInterpreter::GetInterpreterBackend();
+					bool isCompatible = false;
+					if (backend == "NitroJIT")
+					{
+						isCompatible = (currentBackend == jenova::InterpreterBackend::AsmJIT);
+					}
+					else if (backend == "Meteora")
+					{
+						isCompatible = (currentBackend == jenova::InterpreterBackend::TinyCC || currentBackend == jenova::InterpreterBackend::TinyCC2);
+					}
+					if (!isCompatible) continue;
 				}
 
 				// Add Class Script Template
