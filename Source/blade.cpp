@@ -26,7 +26,7 @@
 #endif
 
 // Blade Language
-#include "Blade.h"
+#include "blade.h"
 
 // Tiny C Compiler
 #include <TinyCC/libtcc.h>

@@ -1156,6 +1156,7 @@ namespace jenova
 	bool ReleaseTemporaryModuleCache();
 	bool CreateSourceControlFiles(const std::string& rootPath);
 	std::string GetVisualStudioInstancesMetadata(const std::string& arguments);
+	std::string GetRuntimeModulePath();
 	std::string GetRuntimeCompilerName();
 	bool InstallBuiltInScriptTemplates();
 	bool UpdateScriptTemplates();

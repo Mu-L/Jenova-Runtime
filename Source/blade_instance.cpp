@@ -11,8 +11,8 @@
 +-------------------------------------------------------------*/
 
 // Blade SDK
-#include <blade.h>
-#include <blade_instance.h>
+#include "blade.h"
+#include "blade_instance.h"
 
 // Blade Script Instance Base Implementation
 namespace blade

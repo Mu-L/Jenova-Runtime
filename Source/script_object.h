@@ -91,11 +91,6 @@ public:
 	// Extra
 	bool is_carbon() const
 	{
-		// Carbon Currently is Supported Only On Windows
-		#ifndef TARGET_PLATFORM_WINDOWS
-		return false;
-		#endif
-
 		return IsCarbon;
 	}
 	bool is_built_in() const

@@ -4422,9 +4422,9 @@ namespace jenova
 
 					try
 					{
-						std::string targetBinary = jenovaExportDirectory + std::filesystem::path(jenova::GlobalStorage::CurrentJenovaRuntimeModulePath).filename().string();
+						std::string targetBinary = jenovaExportDirectory + std::filesystem::path(jenova::GetRuntimeModulePath()).filename().string();
 						if (std::filesystem::exists(targetBinary)) std::filesystem::remove(targetBinary);
-						std::filesystem::copy_file(jenova::GlobalStorage::CurrentJenovaRuntimeModulePath, targetBinary);
+						std::filesystem::copy_file(jenova::GetRuntimeModulePath(), targetBinary);
 					}
 					catch (const std::exception&)
 					{
@@ -5090,7 +5090,7 @@ namespace jenova
 		// Wrapper
 		static bool CheckWrapperInitialization()
 		{
-			std::string currentModuleName = std::filesystem::path(GlobalStorage::CurrentJenovaRuntimeModulePath).filename().string();
+			std::string currentModuleName = std::filesystem::path(jenova::GetRuntimeModulePath()).filename().string();
 			std::string runtimeModuleName = std::string(GlobalSettings::JenovaRuntimeModuleName);
 			if (QUERY_PLATFORM(Windows)) runtimeModuleName += ".Win64.dll";
 			if (QUERY_PLATFORM(Linux)) runtimeModuleName += ".Linux64.so";
@@ -5099,7 +5099,7 @@ namespace jenova
 		}
 		static GDExtensionBool InitializeAsWrapper(ExtensionInitializerData initializerData)
 		{
-			std::string wrapperDirectory = std::filesystem::path(GlobalStorage::CurrentJenovaRuntimeModulePath).parent_path().string();
+			std::string wrapperDirectory = std::filesystem::path(jenova::GetRuntimeModulePath()).parent_path().string();
 			std::string originalRuntimeModulePath = wrapperDirectory + "/" + std::string(GlobalSettings::JenovaRuntimeModuleName);
 			if (QUERY_PLATFORM(Windows)) originalRuntimeModulePath += ".Win64.dll";
 			if (QUERY_PLATFORM(Linux)) originalRuntimeModulePath += ".Linux64.so";
@@ -9204,18 +9204,11 @@ namespace jenova
 		scriptSourceCode = scriptSourceCode.replace(" OnUserInterfaceInput", " _gui_input");
 
 		// Handle Carbon Scripts
-		#ifdef TARGET_PLATFORM_WINDOWS
 		if (cppScript->is_carbon())
 		{
 			// Build Error Injection
 			String buildError = "#error \"Carbon Script Failed to Preprocess, Check Logs for More Info.\"";
 
-			// Validate Compiler Support
-			if (jenovaCompiler->GetCompilerModel() != CompilerModel::MicrosoftCompiler)
-			{
-				jenova::Error("Jenova Preprocessor", "Carbon Support is Currently Limited to Microsoft Compilers.");
-				return buildError;
-			}
 
 			// Validate Carbon Toolkit
 			if (!Engine::get_singleton()->has_singleton("CarbonToolkit"))
@@ -9331,7 +9324,6 @@ namespace jenova
 				return buildError;
 			}
 		}
-		#endif
 
 		// Process And Extract Properties
 		jenova::SerializedData propertiesMetadata = jenova::ProcessAndExtractPropertiesFromScript(scriptSourceCode, cppScript->GetScriptIdentity(), cppScript->is_carbon());
@@ -10706,6 +10698,21 @@ namespace jenova
 
 		// Only Supported On Windows
 		return "{}";
+	}
+	std::string GetRuntimeModulePath()
+	{
+		// Linux Shenanigan
+		#ifdef TARGET_PLATFORM_LINUX
+		if (jenova::GlobalStorage::CurrentJenovaRuntimeModulePath.empty())
+		{
+			// Linux compilers are retarded and can't handle static init order properly.
+			// This shouldn't be necessary, But here we fucking are!
+			jenova::GlobalStorage::CurrentJenovaRuntimeModulePath = jenova::GetLoadedModulePath(jenovaRuntimeInstance);
+		}
+		#endif
+
+		// Return Cached Path
+		return jenova::GlobalStorage::CurrentJenovaRuntimeModulePath;
 	}
 	std::string GetRuntimeCompilerName()
 	{
