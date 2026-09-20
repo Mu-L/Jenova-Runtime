@@ -931,10 +931,10 @@ Variant JenovaInterpreter::CallFunction(const godot::Object* objectPtr, void* in
         // Resolve Each Parameter
         for (size_t i = paramIndex; i < resolvedParameters.size(); i++)
         {
-            // Get parameter type from metadata
+            // Get Parameter Type from Metadata
             std::string paramType = functionParametersType[i];
 
-            // Resolve parameter value to pointer
+            // Resolve Parameter Value to Pointer
             int funcParamIndex = i - (needsPassingOwner ? 1 : 0);
             uintptr_t ptr = jenova::ResolveVariantValueAsPointer(functionParameters[funcParamIndex], paramType, ptrList);
             paramPtrs.push_back(reinterpret_cast<void*>(ptr));
@@ -1070,6 +1070,9 @@ bool JenovaInterpreter::BuildExecutionCache()
             std::string returnType = returnIt->second;
             auto paramTypes = paramsIt->second;
             jenova::FunctionAddress address = addrIt->second;
+
+            // Strip Empty Entries
+            paramTypes.erase(std::remove_if(paramTypes.begin(), paramTypes.end(), [](const std::string& t) { return t.empty() || t == "void"; }), paramTypes.end());
 
             // Get Unique Function Signature
             std::string uniqueName = GetFunctionUniqueSignature(scriptUID, functionName);
